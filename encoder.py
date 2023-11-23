@@ -3,4 +3,4 @@ class Encoder:
         print("Encoder")
 
     def encode(self, inputPath, outputPath):
-        print(filePath)
+        print("Encoding...")
