@@ -17,6 +17,9 @@ class Application(tk.Frame):
         self.decoder = Decoder()
         self.errorSim = ErrorSimulator()
 
+        self.inputFilePath = None
+        self.outputFilePath = None
+
         self.setUpPages()
 
     def setUpPages(self):
@@ -26,35 +29,27 @@ class Application(tk.Frame):
         self.tab2 = ttk.Frame(self.tabControl)
         self.tab3 = ttk.Frame(self.tabControl)
 
-        self.tabControl.add(self.tab1, text="Encoder")
-        self.tabControl.add(self.tab2, text="Decoder")
-        self.tabControl.add(self.tab3, text="Error simulation")
+        self.tabControl.add(self.tab1, text="Home")
+        self.tabControl.add(self.tab2, text="Settings")
         self.tabControl.pack(expand=1, fill="both")
+        # self.tabControl.bind("<<NotebookTabChanged>>", self.OnTabChange)
 
-        self.encoderPage()
-        self.decoderPage()
-        self.errorPage()
+        self.homePage()
 
-    def encoderPage(self):
-        self.BasePage("Encoder", self.encode, self.tab1)
+    def homePage(self):
+        #  --  Selection Box  --  #
+        self.operation = tk.StringVar(self.tab1)
+        self.operation.set("Encoder")  # default value
 
-    def decoderPage(self):
-        self.BasePage("Decoder", self.decode, self.tab2)
+        w = tk.OptionMenu(
+            self.tab1, self.operation, "Encoder", "Decoder", "Error Simulator"
+        )
+        w.pack()
 
-    def errorPage(self):
-        self.BasePage("Error simulation", self.induceErrors, self.tab3)
+        #  --  Input file field  --  #
+        tk.Label(self.tab1, text="input file").pack()
 
-    def BasePage(self, pageName, opperation, tab):
-        self.inputFilePath = None
-        self.outputFilePath = None
-
-        label = tk.Label(tab, text=pageName)
-        label.pack()
-
-        label = tk.Label(tab, text="input file")
-        label.pack()
-
-        container1 = tk.Label(tab)
+        container1 = tk.Label(self.tab1)
         container1.pack()
 
         self.inputFilePathLabel = tk.Label(
@@ -62,15 +57,14 @@ class Application(tk.Frame):
         )
         self.inputFilePathLabel.pack(side=tk.LEFT, padx=20)
 
-        greet_button = tk.Button(
+        tk.Button(
             container1, text="Select File", command=self.getInputFilePath, width=10
-        )
-        greet_button.pack(side=tk.LEFT, padx=0)
+        ).pack(side=tk.LEFT, padx=0)
 
-        label = tk.Label(tab, text="output file")
-        label.pack()
+        #  --  Output file field  --  #
+        tk.Label(self.tab1, text="output file").pack()
 
-        container2 = tk.Label(tab)
+        container2 = tk.Label(self.tab1)
         container2.pack()
 
         self.outputFilePathLabel = tk.Label(
@@ -78,16 +72,22 @@ class Application(tk.Frame):
         )
         self.outputFilePathLabel.pack(side=tk.LEFT, padx=20)
 
-        greet_button = tk.Button(
+        tk.Button(
             container2, text="Select File", command=self.getOutputFilePath, width=10
-        )
-        greet_button.pack(side=tk.LEFT, padx=0)
+        ).pack(side=tk.LEFT, padx=0)
 
-        encode_button = tk.Button(tab, text=pageName, command=opperation, width=20)
+        #  --  Submit button  --  #
+        encode_button = tk.Button(
+            self.tab1,
+            text="Start",
+            command=self.submit,
+            width=20,
+        )
         encode_button.pack()
 
-    def greet(self):
-        print("Greet")
+    # def OnTabChange(self, *args):
+    #     self.tabIndex = int(self.tabControl.index(self.tabControl.select()))
+    #     print(self.tabIndex)
 
     def getInputFilePath(self):
         self.inputFilePath = fd.askopenfilename()
@@ -97,14 +97,14 @@ class Application(tk.Frame):
         self.outputFilePath = fd.askopenfilename()
         self.outputFilePathLabel.configure(text=self.outputFilePath)
 
-    def encode(self):
-        if self.inputFilePath and self.outputFilePath:
+    def submit(self):
+        if not self.inputFilePath or not self.outputFilePath:
+            print("No file paths selected")
+            return
+        operation = self.operation.get()
+        if operation == "Encoder":
             self.encoder.encode(self.inputFilePath, self.outputFilePath)
-
-    def decode(self):
-        if self.inputFilePath and self.outputFilePath:
+        if operation == "Decoder":
             self.decoder.decode(self.inputFilePath, self.outputFilePath)
-
-    def induceErrors(self):
-        if self.inputFilePath and self.outputFilePath:
+        if operation == "Error Simulator":
             self.errorSim.induceErrors(self.inputFilePath, self.outputFilePath)
