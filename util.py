@@ -3,7 +3,7 @@ from config import codons
 
 def bits_to_bases(bits, nr_codons=3):
     if nr_codons == 3:
-        wl = 12
+        wl = 16
     if nr_codons == 4:
         wl = 22
 
