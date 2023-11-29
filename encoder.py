@@ -7,7 +7,8 @@ class Encoder:
 
     def encode(self, inputPath, outputPath):
         binaryString = file_to_binary_string(inputPath)
-        print(binaryString)
         dnaStrand = bits_to_bases(binaryString, 3)
-        print(dnaStrand)
+        print(len(binaryString), len(dnaStrand), len(binaryString) / len(dnaStrand))
+        dnaStrand = bits_to_bases(binaryString, 4)
+        print(len(binaryString), len(dnaStrand), len(binaryString) / len(dnaStrand))
         DNA_srand_to_file(dnaStrand, outputPath)

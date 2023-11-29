@@ -7,14 +7,27 @@ def bits_to_bases(bits, nr_codons=3):
     if nr_codons == 4:
         wl = 22
 
-    strand = ""
+    id_secuence = ""
+    id = 0
+
+    for i in range(3):
+        index = (id // (47**i)) % 47
+        id_secuence = codons[index] + id_secuence
+
+    padding = (wl - len(bits) % wl) % wl
+
+    bits = bits + padding * "0"
+
+    id_secuence = id_secuence + codons[padding]
+
+    strand = id_secuence
 
     for i in range(len(bits) // wl):
         word = int(bits[wl * i : wl * i + wl], 2)
 
         res = ""
 
-        for i in range(3):
+        for i in range(nr_codons):
             index = (word // (47**i)) % 47
 
             res = codons[index] + res
