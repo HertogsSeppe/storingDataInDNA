@@ -1,4 +1,4 @@
-from util import file_to_binary_string, bits_to_bases, DNA_srand_to_file
+from util import file_to_binary_string, bits_to_bases, DNA_strand_to_file
 
 
 class Encoder:
@@ -6,9 +6,13 @@ class Encoder:
         print("Encoder")
 
     def encode(self, inputPath, outputPath):
+
         binaryString = file_to_binary_string(inputPath)
-        dnaStrand = bits_to_bases(binaryString, 3)
-        print(len(binaryString), len(dnaStrand), len(binaryString) / len(dnaStrand))
-        dnaStrand = bits_to_bases(binaryString, 4)
-        print(len(binaryString), len(dnaStrand), len(binaryString) / len(dnaStrand))
-        DNA_srand_to_file(dnaStrand, outputPath)
+
+        dnaStrand3 = bits_to_bases(binaryString, 3)
+        print(len(binaryString), len(dnaStrand3), len(binaryString) / len(dnaStrand3))
+
+        dnaStrand4 = bits_to_bases(binaryString, 4)
+        print(len(binaryString), len(dnaStrand4), len(binaryString) / len(dnaStrand4))
+
+        DNA_strand_to_file(dnaStrand3, outputPath)

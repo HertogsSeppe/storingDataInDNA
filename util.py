@@ -41,6 +41,48 @@ Stack overflow, Brunão: https://stackoverflow.com/questions/75611160/
 converting-any-file-to-binary-1-and-0-and-then-back-to-original-file-without-cor
 """
 
+def bases_to_binary(bases, nr_codons=3):
+    
+    bases = bases[12:]
+    index = 0
+    base_10_numbers = []
+
+    for i in range(0, int(len(bases)/nr_codons), 3):
+
+        base_10_val = 0
+        
+        for j  in range(0, nr_codons, 1):
+
+            codon = bases[index: index + nr_codons]
+
+            base_10_val = base_10_val + codons.index(codon)*47**(nr_codons-j-1)
+
+            index = index + nr_codons
+        
+        base_10_numbers.append(base_10_val)
+    
+    if nr_codons == 3:
+        nr_bits = 16
+    if nr_codons == 4:
+        nr_bits = 22
+
+    bit_string = ""
+
+    for i in range(0, len(base_10_numbers), 1):
+        
+        decimal = base_10_numbers[i]
+
+        bit_len = ""
+
+        for i in range(nr_bits):
+            bit = str((decimal // (2**i)) % 2)
+
+            bit_len = bit + bit_len
+
+        bit_string = bit_string + bit_len
+
+    return bit_string
+
 
 def file_to_binary_string(file_path):
     with open(file_path, "rb") as file:
@@ -58,6 +100,6 @@ def binary_string_to_file(binary_string, file_path):
         file.write(bytes_arr)
 
 
-def DNA_srand_to_file(strand, file_path):
+def DNA_strand_to_file(strand, file_path):
     with open(file_path, "w") as file:
         file.write(strand)
