@@ -23,3 +23,23 @@ def binary_string_to_file(binary_string, file_path):
 def DNA_srand_to_file(strand, file_path):
     with open(file_path, "w") as file:
         file.write(strand)
+
+
+def flip_matrix(matrix):
+    new_matrix = []
+    for i in range(len(matrix[0])):
+        new_matrix.append([int(row[i]) for row in matrix[0:40]])
+    return new_matrix
+
+
+# import galois
+
+# GF = galois.GF(47)
+# rs = galois.ReedSolomon(46, 40, field=GF)
+
+# m = [1, 20, 33]
+# print(m)
+
+# c = rs.encode(m)
+# print(int(c))
+# print(type(int(c[2])), int(c[2]))
