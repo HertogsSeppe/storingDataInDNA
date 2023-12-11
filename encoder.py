@@ -19,8 +19,11 @@ class Encoder:
 
         # Apply reed solomon error correction and cut up in lists of lenth 46
         encrypted_data = self.apply_reed_solomon(dnaStrand)
-        # DNA_srand_to_file(dnaStrand, outputPath)
-        # print(len(binaryString), len(dnaStrand), len(binaryString) / len(dnaStrand))
+
+        dnaStrand = self.base47_to_DNA(encrypted_data)
+
+        DNA_srand_to_file(dnaStrand, outputPath)
+        print(len(binaryString), len(dnaStrand), len(binaryString) / len(dnaStrand))
 
     def bits_to_base47(self, bits, nr_codons=3):
         if nr_codons == 3:
@@ -72,8 +75,7 @@ class Encoder:
                 result.append(final)
 
         # TODO: deal with the remaining strands
-
-        result = flip_matrix(flip_matrix(result))
+        print(len(result), len(result[0]))
         return result
 
         # print(len(flip_matrix(new_strands)), len(flip_matrix(new_strands)[0]))
@@ -111,3 +113,12 @@ class Encoder:
             strand.append(index)
 
         return strand
+
+    def base47_to_DNA(self, data):
+        nucleotides = ""
+        print(len(data), len(data[0]))
+        for strand in data:
+            for index in strand:
+                nucleotides += codons[int(index)]
+            nucleotides += "\n"
+        return nucleotides
