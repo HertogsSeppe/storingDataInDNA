@@ -3,12 +3,17 @@ import galois
 from util import file_to_binary_string, DNA_srand_to_file, flip_matrix
 from config import codons
 
+k = 40
+m = 37
+redA = 6
+redB = 6
 
 class Encoder:
     def __init__(self):
         print("Encoder")
         self.GF = galois.GF(47)
-        self.rs = galois.ReedSolomon(46, 40, field=self.GF)
+        self.rs_row = galois.ReedSolomon(k + redA, k, field=self.GF)
+        self.rs_col = galois.ReedSolomon((m + 3 + redB), (m + 3), field=self.GF)
 
     def encode(self, inputPath, outputPath):
         # Read in the binary string
@@ -17,7 +22,7 @@ class Encoder:
         # Convert the binary string to a list of values base 47
         dnaStrand = self.bits_to_base47(binaryString, 4)
 
-        # Apply reed solomon error correction and cut up in lists of lenth 46
+        # Apply reed solomon error correction and cut up in lists of lenth k + redA
         encrypted_data = self.apply_reed_solomon(dnaStrand)
 
         dnaStrand = self.base47_to_DNA(encrypted_data)
@@ -58,20 +63,20 @@ class Encoder:
 
         # TODO: Refactor this code into sepparate functions
 
-        for i in range(len(strands) // 40):
+        for i in range(len(strands) // k):
             # Flip rows and columns
-            matrix = flip_matrix(strands[40 * i : 40 * (i + 1)])
+            matrix = flip_matrix(strands[k * i : k * (i + 1)])
             new_strands = []
             # Reed solomon in the row direction
             for row in matrix:
-                codeword = self.rs.encode(row)
+                codeword = self.rs_row.encode(row)
                 new_strands.append(codeword)
             # Flip back
             new_strands = flip_matrix(new_strands)
             # Reed solomon in the column direction and index
             for j, strand in enumerate(new_strands):
                 indexed = self.generate_index_base47(47 * i + j) + strand
-                final = self.rs.encode(indexed)
+                final = self.rs_col.encode(indexed)
                 result.append(final)
 
         # TODO: deal with the remaining strands
@@ -82,15 +87,15 @@ class Encoder:
 
     def split_strands(self, raw_data):
         strands = []
-        remainder = len(raw_data) % 37
+        remainder = len(raw_data) % m
 
-        for i in range(len(raw_data) // 37):
-            strand = raw_data[i * 37 : (i + 1) * 37]
+        for i in range(len(raw_data) // m):
+            strand = raw_data[i * m : (i + 1) * m]
             strands.append(strand)
         if remainder == 0:
             return strands
 
-        strand = raw_data[-remainder:] + (37 - remainder) * [0]
+        strand = raw_data[-remainder:] + (m - remainder) * [0]
         strands.append(strand)
 
         return strands
