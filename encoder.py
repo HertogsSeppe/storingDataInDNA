@@ -1,6 +1,6 @@
 import galois
 
-from util import file_to_binary_string, DNA_srand_to_file, flip_matrix
+from util import file_to_binary_string, DNA_strand_to_file, flip_matrix
 from config import codons
 
 k = 40
@@ -27,7 +27,7 @@ class Encoder:
 
         dnaStrand = self.base47_to_DNA(encrypted_data)
 
-        DNA_srand_to_file(dnaStrand, outputPath)
+        DNA_strand_to_file(dnaStrand, outputPath)
         print(len(binaryString), len(dnaStrand), len(binaryString) / len(dnaStrand))
 
     def bits_to_base47(self, bits, nr_codons=3):
@@ -101,13 +101,13 @@ class Encoder:
         return strands
 
     def generate_index_base47(self, id=0):
-        id_secuence = []
+        id_sequence = []
 
         for i in range(2, -1, -1):
             index = (id // (47**i)) % 47
-            id_secuence.append(index)
+            id_sequence.append(index)
 
-        return id_secuence
+        return id_sequence
 
     def word_to_base47(self, word, nr_codons):
         strand = []

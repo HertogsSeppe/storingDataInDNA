@@ -20,7 +20,7 @@ def binary_string_to_file(binary_string, file_path):
         file.write(bytes_arr)
 
 
-def DNA_srand_to_file(strand, file_path):
+def DNA_strand_to_file(strand, file_path):
     with open(file_path, "w") as file:
         file.write(strand)
 
