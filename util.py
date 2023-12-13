@@ -25,6 +25,9 @@ def DNA_strand_to_file(strand, file_path):
         file.write(strand)
 
 
+# Transpose of a marix
+
+
 def flip_matrix(matrix):
     new_matrix = []
     for i in range(len(matrix[0])):
@@ -32,14 +35,41 @@ def flip_matrix(matrix):
     return new_matrix
 
 
-# import galois
+def b47_to_binary(b47s, codon_len=3):
+    # assumes b47s is a list of base 47 numbers. if not, can be changed.
 
-# GF = galois.GF(47)
-# rs = galois.ReedSolomon(46, 40, field=GF)
+    if codon_len == 3:
+        nr_bits = 16
+    if codon_len == 4:
+        nr_bits = 22
 
-# m = [1, 20, 33]
-# print(m)
+    index = 0
+    base_10_numbers = []
 
-# c = rs.encode(m)
-# print(int(c))
-# print(type(int(c[2])), int(c[2]))
+    for i in range(0, int(len(b47s) / codon_len), 3):
+        base_10_val = 0
+
+        for j in range(0, codon_len, 1):
+            b47_nr = b47s[index]
+
+            base_10_val = base_10_val + b47_nr * 47 ** (codon_len - j - 1)
+
+            index = index + 1
+
+        base_10_numbers.append(base_10_val)
+
+    bit_string = ""
+
+    for i in range(0, len(base_10_numbers), 1):
+        decimal = base_10_numbers[i]
+
+        bit_len = ""
+
+        for i in range(nr_bits):
+            bit = str((decimal // (2**i)) % 2)
+
+            bit_len = bit + bit_len
+
+        bit_string = bit_string + bit_len
+
+    return bit_string
