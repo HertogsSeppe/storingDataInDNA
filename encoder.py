@@ -13,13 +13,9 @@ class Encoder:
     def __init__(self):
         print("Encoder")
         self.GF = galois.GF(47)
-<<<<<<< Updated upstream
+
         self.rs_row = galois.ReedSolomon(46, 46 - redA, field=self.GF)
         self.rs_col = galois.ReedSolomon(46, 46 - redB, field=self.GF)
-=======
-        self.rs_row = galois.ReedSolomon(46, 46 - redA, field=self.GF)
-        self.rs_col = galois.ReedSolomon(46, 46 - redB, field=self.GF)
->>>>>>> Stashed changes
 
     def encode(self, inputPath, outputPath):
         # Read in the binary string
