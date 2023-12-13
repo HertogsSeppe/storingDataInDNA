@@ -119,7 +119,7 @@ def restructure_B_to_A(base47_list, index_len = 3, redun_B_len = 3):
         
         b47_rows_list[j] = row
 
-    return b47_rows_list
+    return b47_rows_list###
 
 
 def restructure_A_to_final(base47_list, redun_A_len = 3):
