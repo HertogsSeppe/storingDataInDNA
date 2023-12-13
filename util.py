@@ -11,7 +11,7 @@ def file_to_binary_string(file_path):
     return binary_string
 
 
-def binary_string_to_file(binary_string, file_path):
+def binary_string_to_file(binary_string, file_path): 
     with open(file_path, "wb") as file:
         bytes_list = [
             int(binary_string[i : i + 8], 2) for i in range(0, len(binary_string), 8)
@@ -25,7 +25,7 @@ def DNA_strand_to_file(strand, file_path):
         file.write(strand)
 
 
-# Transpose of a marix
+# Transpose of a matrix
 
 
 def flip_matrix(matrix):
