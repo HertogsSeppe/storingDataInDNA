@@ -12,8 +12,8 @@ class Encoder:
     def __init__(self):
         print("Encoder")
         self.GF = galois.GF(47)
-        self.rs_row = galois.ReedSolomon(k + redA, k, field=self.GF)
-        self.rs_col = galois.ReedSolomon((m + 3 + redB), (m + 3), field=self.GF)
+        self.rs_row = galois.ReedSolomon(46, (46 - redA), field=self.GF)
+        self.rs_col = galois.ReedSolomon(46, (46 - redB), field=self.GF)
 
     def encode(self, inputPath, outputPath):
         # Read in the binary string

@@ -5,7 +5,7 @@ codons = [
     "TCA",
     "AGA",
     "CGA",
-    "AGG",
+    "GGA",
     "TGA",
     "ATA",
     "CTA",
