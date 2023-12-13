@@ -40,6 +40,8 @@ def bits_to_bases(bits, nr_codons=3):
 #converting-any-file-to-binary-1-and-0-and-then-back-to-original-file-without-cor
 #"""
 
+#functions below here are for decoding process. need to be reorganized and maybe put somewhere else than util?
+
 def DNA_matching(DNA_strings):
     #assumes DNA_strings is a list containing each sequenced nucleotide string. Can be changed if necessary.
     
@@ -87,37 +89,51 @@ def complement_str(line):
     return complement
 
 
-def restructure(base47_list, index_len = 3, redun_A_len = 3, redun_B_len = 3):
-    #assumes base_list is a list of base 47 lists that have already been correctly ordered by index nr. if not, has to be changed.
+def restructure_B_to_A(base47_list, index_len = 3, redun_B_len = 3):
+    #assumes base_list is a list of base 47 column lists that have already been correctly ordered by index nr. if not, has to be changed.
     #assumes all base string have the same length. If not, has to be changed.
     #   - redun_A_len is the horizontal (row) redundancy.
     #   - redun_B_len is the vertical (column) redundancy.
 
-    base47_trimmed_A = base47_list[redun_A_len:]
+    base47_Btrim_list = [0]*len(base47_list)
 
-    base47_str_len = len(base47_trimmed_A[0])
-    base47_full_trimmed = [0]*len(base47_trimmed_A)
+    for i in range(0,len(base47_list),1):
 
-    for i in range(0,len(base47_trimmed_A),1):
+        base47_str = base47_list[i]
 
-        base47_str = base47_trimmed_A[i]
-        base47_str_trimmed = base47_str[redun_B_len:(base47_str_len-index_len)]
+        base47_Btrim_list[i] = base47_str[index_len:(len(base47_str)-redun_B_len)]
 
-        base47_full_trimmed[i] = base47_str_trimmed
-    
-    col_len = len(base47_full_trimmed[0])
-    row_len = len(base47_full_trimmed)
+    col_len = len(base47_Btrim_list[0])
+    row_len = len(base47_Btrim_list)
 
-    restructured_list = [0]*col_len*row_len
+    b47_rows_list = [0]*col_len
 
     for j in range(0, col_len, 1):
 
-        for k in range(0, row_len,1):
+        row = [0]*row_len
 
-            base47s = base47_full_trimmed[k]
-            base47_nr = base47s[j]
+        for k in range(0, row_len, 1):
 
-            restructured_list[(j*row_len)+k] = base47_nr
+            col = base47_Btrim_list[k]
+            row[k] = col[j]
+        
+        b47_rows_list[j] = row
+
+    return b47_rows_list
+
+
+def restructure_A_to_final(base47_list, redun_A_len = 3):
+    #assumes base47_list is a list of base 47 row lists.
+
+    col_len = len(base47_list)
+    row_len = len(base47_list[0]-redun_A_len)
+
+    restructured_list = []
+
+    for j in range(0, col_len, 1):
+        base47_trimmed_row = base47_list[k][redun_A_len:]
+
+        restructured_list.extend(base47_trimmed_row)
 
     return restructured_list
 
