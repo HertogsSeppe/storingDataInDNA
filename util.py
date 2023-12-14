@@ -1,4 +1,5 @@
 from config import codons
+import galois
 
 
 def bits_to_bases(bits, nr_codons=3):
@@ -63,6 +64,49 @@ def DNA_matching(DNA_strings):
     return '_'
 
 
+def levenshtein_distance(a,b):
+    #icomputes the levenshtein distance between two strings.
+    #with a and b two strings of arbitrary size.
+    
+    LS_matrix = np.zeros((len(b)+1,len(a)+1))
+    
+    index_a = 0
+    index_b = 0
+    if len(a) == len(b):
+        for i in range(0, len(a)+1, 1):
+        
+            LS_matrix[0,i] = index_a
+            LS_matrix[i,0] = index_a
+            
+            index_a = index_a + 1
+            
+    else:
+        for j in range(0, len(a)+1, 1):
+            
+            LS_matrix[0,j] = index_a
+            index_a = index_a + 1
+            
+        for k in range(0, len(b)+1, 1):
+            
+            LS_matrix[k,0] = index_b
+            index_b = index_b + 1
+    
+    for l in range(0, len(b), 1):
+        
+        for m in range(0, len(a), 1):
+            
+            vals = [int(LS_matrix[l,m]),int(LS_matrix[l+1,m]),int(LS_matrix[l,m+1])]
+            
+            if a[m] == b[l] and len(a[:m]) == len(b[:l]):
+                
+                LS_matrix[l+1,m+1] = min(vals)
+                
+            else:
+                LS_matrix[l+1,m+1] = min(vals) + 1
+            
+    return int(LS_matrix[len(b),len(a)])
+
+
 def complement_str(line):
     #creates the complement for a DNA string.
 
@@ -119,7 +163,7 @@ def restructure_B_to_A(base47_list, index_len = 3, redun_B_len = 3):
         
         b47_rows_list[j] = row
 
-    return b47_rows_list###
+    return b47_rows_list
 
 
 def restructure_A_to_final(base47_list, redun_A_len = 3):
@@ -131,7 +175,7 @@ def restructure_A_to_final(base47_list, redun_A_len = 3):
     restructured_list = []
 
     for j in range(0, col_len, 1):
-        base47_trimmed_row = base47_list[k][redun_A_len:]
+        base47_trimmed_row = base47_list[j][redun_A_len:]
 
         restructured_list.extend(base47_trimmed_row)
 
