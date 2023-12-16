@@ -31,7 +31,7 @@ def DNA_strand_to_file(strand, file_path):
 def flip_matrix(matrix):
     new_matrix = []
     for i in range(len(matrix[0])):
-        new_matrix.append([int(row[i]) for row in matrix[0:40]])
+        new_matrix.append([int(row[i]) for row in matrix])
     return new_matrix
 
 
