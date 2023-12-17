@@ -4,23 +4,17 @@ from util import (
     file_to_binary_string,
     DNA_strand_to_file,
     flip_matrix,
-    base47_to_bin,
-    binary_string_to_file,
-    b47_to_binary,
+    pair_columns,
+    separate_columns,
 )
 from config import codons
-
-k = 40
-m = 37
-redA = 6
-redB = 6
 
 
 class Encoder:
     def __init__(self):
         print("Encoder")
-        k = 40
-        m = 37
+        self.k = 40
+        self.m = 37
         self.red_frac_A = 0.1
         self.redB = 6
 
@@ -42,16 +36,19 @@ class Encoder:
         # Apply reed solomon error correction and cut up in lists of lenth k + redA
         encrypted_data = self.apply_reed_solomon(base47_list)
 
+        # Convert the base 47 lists to dna strands
         dnaStrand = self.base47_to_DNA(encrypted_data)
 
         DNA_strand_to_file(dnaStrand, outputPath)
         # binary_string_to_file(base47_to_bin(base47_list), outputPath)
 
+        # Bits per base, before reed solomon
         print(
             len(binaryString),
             len(base47_list),
             len(binaryString) / (len(base47_list) * 3),
         )
+        # Bits per base, after reed solomon
         print(len(binaryString), len(dnaStrand), len(binaryString) / (len(dnaStrand)))
 
     def bits_to_base47(self, bits, nr_codons=3):
@@ -81,51 +78,42 @@ class Encoder:
         return data_list
 
     def apply_reed_solomon(self, raw_data):
+        # Split the strands into segments of length m
         columns = self.split_strands(raw_data)
 
-        paired_cols = []
-        for i in range(0, len(columns) - 1, 2):
-            # TODO: make work for odd nr cols
-            new_col = []
-            for j in range(len(columns[0])):
-                new_col.append(columns[i][j] + 47 * columns[i + 1][j])
-            paired_cols.append(new_col)
-        if len(columns) % 2 == 1:
-            paired_cols.append(columns[-1])
+        # Pair every two columns for encoding with exension field
+        paired_cols = pair_columns(columns)
 
-        # Reed Solomon decoding along rows
+        # Reed Solomon encoding along rows
         self.update_row_rs_field(len(paired_cols))
         rows = flip_matrix(paired_cols)
         encoded_rows = self.rs_row.encode(rows)
 
-        cols = flip_matrix(encoded_rows)
-        indexed_cols = []
-        for i, col in enumerate(cols):
-            new_col1 = self.generate_index_base47(2 * i)
-            new_col2 = self.generate_index_base47(2 * i + 1)
+        # Separate the paired columns
+        paired_encoded_cols = flip_matrix(encoded_rows)
+        separated_cols = separate_columns(paired_encoded_cols)
 
-            for j in col:
-                new_col1.append(j % 47)
-                new_col2.append(j // 47)
-            indexed_cols.append(new_col1)
-            indexed_cols.append(new_col2)
+        # Add index
+        for i in range(len(separated_cols)):
+            separated_cols[i] = self.generate_index_base47(i) + separated_cols[i]
 
         # Reed solomon in the column direction
-        result = self.rs_col.encode(indexed_cols)
+        result = self.rs_col.encode(separated_cols)
 
         return result
 
     def split_strands(self, raw_data):
         strands = []
-        remainder = len(raw_data) % m
+        remainder = len(raw_data) % self.m
 
-        for i in range(len(raw_data) // m):
-            strand = raw_data[i * m : (i + 1) * m]
+        for i in range(len(raw_data) // self.m):
+            strand = raw_data[i * self.m : (i + 1) * self.m]
             strands.append(strand)
         if remainder == 0:
             return strands
 
-        strand = raw_data[-remainder:] + (m - remainder) * [0]
+        # If there is a remainder, add padded list at the end
+        strand = raw_data[-remainder:] + (self.m - remainder) * [0]
         strands.append(strand)
 
         return strands
@@ -159,8 +147,6 @@ class Encoder:
 
     def update_row_rs_field(self, nr_cols):
         red = int(round(nr_cols * self.red_frac_A))
-
-        red = 6
 
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, (47**2 - 1) - red, field=self.GF2

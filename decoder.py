@@ -126,7 +126,7 @@ class Decoder:
         return [x for _, x in sorted(zip(indexes, data))]
 
     def update_row_rs_field(self, nr_cols):
-        red = 6  # int(round(nr_cols * self.red_frac_A))
+        red = int(round(nr_cols * self.red_frac_A))
 
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, (47**2 - 1) - red, field=self.GF2

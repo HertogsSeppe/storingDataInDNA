@@ -109,3 +109,29 @@ def base47_to_bin(data, codon_len=4):
         return bits
     bits = bits[:-padding]
     return bits
+
+
+def pair_columns(columns):
+    paired_cols = []
+    for i in range(0, len(columns) - 1, 2):
+        new_col = []
+        for j in range(len(columns[0])):
+            new_col.append(columns[i][j] + 47 * columns[i + 1][j])
+        paired_cols.append(new_col)
+    if len(columns) % 2 == 1:
+        paired_cols.append(columns[-1])
+    return paired_cols
+
+
+def separate_columns(columns):
+    sep_cols = []
+    for col in columns:
+        new_col1 = []
+        new_col2 = []
+        # Separate columns
+        for j in col:
+            new_col1.append(j % 47)
+            new_col2.append(j // 47)
+        sep_cols.append(new_col1)
+        sep_cols.append(new_col2)
+    return sep_cols
