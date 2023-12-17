@@ -1,6 +1,13 @@
 import galois
 
-from util import file_to_binary_string, DNA_strand_to_file, flip_matrix
+from util import (
+    file_to_binary_string,
+    DNA_strand_to_file,
+    flip_matrix,
+    base47_to_bin,
+    binary_string_to_file,
+    b47_to_binary,
+)
 from config import codons
 
 k = 40
@@ -38,6 +45,7 @@ class Encoder:
         dnaStrand = self.base47_to_DNA(encrypted_data)
 
         DNA_strand_to_file(dnaStrand, outputPath)
+        # binary_string_to_file(base47_to_bin(base47_list), outputPath)
 
         print(
             len(binaryString),
@@ -57,7 +65,7 @@ class Encoder:
 
         data_list = []
 
-        if wl == 16:
+        if wl == 22:
             # Add zero paddig to the end of the binary string
             zeroPad = (wl - len(bits) % wl) % wl
             bits = bits + zeroPad * "0"
@@ -68,15 +76,12 @@ class Encoder:
         # Go over the binary string in steps of "wl" and convert to a list of base 47 numbers
         for i in range(len(bits) // wl):
             word = int(bits[wl * i : wl * i + wl], 2)
-
             data_list += self.word_to_base47(word, nr_codons)
 
         return data_list
 
     def apply_reed_solomon(self, raw_data):
         columns = self.split_strands(raw_data)
-        print("cols:")
-        print(len(columns), len(columns[0]))
 
         paired_cols = []
         for i in range(0, len(columns) - 1, 2):
@@ -88,21 +93,12 @@ class Encoder:
         if len(columns) % 2 == 1:
             paired_cols.append(columns[-1])
 
-        print("pairedcols:")
-        print(len(paired_cols), len(paired_cols[0]))
-
         # Reed Solomon decoding along rows
         self.update_row_rs_field(len(paired_cols))
         rows = flip_matrix(paired_cols)
         encoded_rows = self.rs_row.encode(rows)
-        print("rows:")
-        print(len(rows), len(rows[0]))
-        print("encoded rows:")
-        print(len(encoded_rows), len(encoded_rows[0]))
 
         cols = flip_matrix(encoded_rows)
-        print("cols:")
-        print(len(cols), len(cols[0]))
         indexed_cols = []
         for i, col in enumerate(cols):
             new_col1 = self.generate_index_base47(2 * i)
@@ -113,13 +109,9 @@ class Encoder:
                 new_col2.append(j // 47)
             indexed_cols.append(new_col1)
             indexed_cols.append(new_col2)
-        print("inexed:")
-        print(len(indexed_cols), len(indexed_cols[0]))
 
         # Reed solomon in the column direction
         result = self.rs_col.encode(indexed_cols)
-        print("res:")
-        print(len(result), len(result[0]))
 
         return result
 
@@ -167,6 +159,8 @@ class Encoder:
 
     def update_row_rs_field(self, nr_cols):
         red = int(round(nr_cols * self.red_frac_A))
+
+        red = 6
 
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, (47**2 - 1) - red, field=self.GF2

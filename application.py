@@ -39,7 +39,7 @@ class Application(tk.Frame):
     def homePage(self):
         #  --  Selection Box  --  #
         self.operation = tk.StringVar(self.tab1)
-        self.operation.set("Decoder")  # default value
+        self.operation.set("Encoder")  # default value
 
         w = tk.OptionMenu(
             self.tab1, self.operation, "Encoder", "Decoder", "Error Simulator"

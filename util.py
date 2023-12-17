@@ -11,7 +11,7 @@ def file_to_binary_string(file_path):
     return binary_string
 
 
-def binary_string_to_file(binary_string, file_path): 
+def binary_string_to_file(binary_string, file_path):
     with open(file_path, "wb") as file:
         bytes_list = [
             int(binary_string[i : i + 8], 2) for i in range(0, len(binary_string), 8)
@@ -73,3 +73,32 @@ def b47_to_binary(b47s, codon_len=3):
         bit_string = bit_string + bit_len
 
     return bit_string
+
+
+def base47_to_bin(data, codon_len=4):
+    if codon_len == 3:
+        nr_bits = 16
+    if codon_len == 4:
+        nr_bits = 22
+
+    padding = data[0]
+
+    data = data[1:]
+
+    bits = ""
+
+    itters = len(data) - len(data) % codon_len
+
+    for i in range(0, itters, codon_len):
+        value = 0
+
+        for j in range(codon_len):
+            value += data[i + j] * (47 ** (codon_len - 1 - j))
+
+        bit = str("{0:022b}".format(value))
+        bits += bit
+
+    if padding == 0:
+        return bits
+    bits = bits[:-padding]
+    return bits
