@@ -35,6 +35,13 @@ def flip_matrix(matrix):
     return new_matrix
 
 
+def GF_to_ints(matrix):
+    ints_matrix = [
+        [int(matrix[i][j]) for j in range(len(matrix[0]))] for i in range(len(matrix))
+    ]
+    return ints_matrix
+
+
 def b47_to_binary(b47s, codon_len=3):
     # assumes b47s is a list of base 47 numbers. if not, can be changed.
 

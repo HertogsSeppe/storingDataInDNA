@@ -1,6 +1,12 @@
 import galois
 from config import codons
-from util import flip_matrix, b47_to_binary, binary_string_to_file, base47_to_bin
+from util import (
+    flip_matrix,
+    b47_to_binary,
+    binary_string_to_file,
+    base47_to_bin,
+    GF_to_ints,
+)
 import random
 
 
@@ -47,7 +53,7 @@ class Decoder:
             decoded_strands  # self.sort_columns_on_index(decoded_strands, indexes)
         )
 
-        sorted_cols = flip_matrix(flip_matrix(sorted_cols))
+        sorted_cols = GF_to_ints(sorted_cols)
 
         paired_cols = []
         for i in range(0, len(sorted_cols) - 1, 2):
