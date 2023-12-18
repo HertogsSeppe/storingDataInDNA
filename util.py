@@ -135,3 +135,14 @@ def separate_columns(columns):
         sep_cols.append(new_col1)
         sep_cols.append(new_col2)
     return sep_cols
+
+
+def complementairy_strand(strand):
+    compl_strand = (
+        strand.replace("G", "c").replace("C", "g").replace("A", "t").replace("T", "a")
+    )
+    return compl_strand.upper()
+
+
+def reversed_strand(strand):
+    return strand[::-1]

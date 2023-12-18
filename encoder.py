@@ -119,12 +119,7 @@ class Encoder:
         return strands
 
     def generate_index_base47(self, id=0):
-        id_sequence = []
-
-        for i in range(2, -1, -1):
-            index = (id // (47**i)) % 47
-            id_sequence.append(index)
-
+        id_sequence = [1, id // 47, id % 47]
         return id_sequence
 
     def word_to_base47(self, word, nr_codons):
