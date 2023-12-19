@@ -1,5 +1,5 @@
 import galois
-from config import codons
+from config import codons, codon_dict
 from util import (
     flip_matrix,
     binary_string_to_file,
@@ -32,11 +32,11 @@ class Decoder:
     def decode(self, inputPath, outputPath):
         print("Decoding...")
 
-        # Read in the DNA strand
-        DNA_strands = self.read_strands(inputPath)
+        # Read in the DNA strand and convert to strand with values base 47
+        Base47_strands = self.read_strands(inputPath)
 
         # Reed Solomon decoding along colums and index
-        decoded_cols, indexes = self.RS_col_decoder(DNA_strands)
+        decoded_cols, indexes = self.RS_col_decoder(Base47_strands)
 
         # Sort the columns by index
         sorted_cols = self.sort_columns_on_index(decoded_cols, indexes)
@@ -63,19 +63,19 @@ class Decoder:
             DNA_data = file.read().splitlines()
         file.close()
 
-        DNA_strands = []
+        Base47_strands = []
         for strand in DNA_data:
             if len(strand) != 46 * 3:
                 continue
             compl_strand = complementairy_strand(strand)
 
             # Convert the DNA strand to base 47
-            DNA_strands.append(self.DNA_to_base47(strand))
-            DNA_strands.append(self.DNA_to_base47(compl_strand))
-            DNA_strands.append(self.DNA_to_base47(reversed_strand(strand)))
-            DNA_strands.append(self.DNA_to_base47(reversed_strand(compl_strand)))
+            Base47_strands.append(self.DNA_to_base47(strand))
+            Base47_strands.append(self.DNA_to_base47(compl_strand))
+            Base47_strands.append(self.DNA_to_base47(reversed_strand(strand)))
+            Base47_strands.append(self.DNA_to_base47(reversed_strand(compl_strand)))
 
-        return DNA_strands
+        return Base47_strands
 
     def DNA_to_base47(self, DNA_data):
         bases47 = []
@@ -85,8 +85,7 @@ class Decoder:
                 bases47.append(0)
                 # print("False codon")
                 continue
-            # This can be optimised with a dict
-            bases47.append(codons.index(codon))
+            bases47.append(codon_dict[codon])
 
         return bases47
 
@@ -103,7 +102,7 @@ class Decoder:
 
     def RS_row_decoder(self, columns):
         paired_cols = pair_columns(columns)
-
+        
         self.update_row_rs_field(len(paired_cols))
 
         encoded_rows = flip_matrix(paired_cols)
