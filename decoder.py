@@ -36,7 +36,7 @@ class Decoder:
         Base47_strands = self.read_strands(inputPath)
 
         # Reed Solomon decoding along colums and index
-        decoded_cols, indexes = self.RS_col_decoder(Base47_strands)
+        decoded_cols, indexes, column_errors = self.RS_col_decoder(Base47_strands)
 
         # Sort the columns by index
         sorted_cols = self.sort_columns_on_index(decoded_cols, indexes)
@@ -45,7 +45,7 @@ class Decoder:
         sorted_cols = GF_to_ints(sorted_cols)
 
         # Reed Solomon decoding along rows
-        res_cols = self.RS_row_decoder(sorted_cols)
+        res_cols, row_errors = self.RS_row_decoder(sorted_cols)
 
         # Concatenate all the DNA-strands
         total = []
@@ -95,23 +95,23 @@ class Decoder:
         for col in strand_base47:
             if col[0] != 1:
                 continue
-            decoded_col = self.rs_col.decode(col)
+            decoded_col, errors = self.rs_col.decode(col, errors=True)
             decoded_cols.append(decoded_col[3:])
             index_list.append(self.get_index_from_base47(decoded_col[:3]))
-        return decoded_cols, index_list
+        return decoded_cols, index_list, errors
 
     def RS_row_decoder(self, columns):
         paired_cols = pair_columns(columns)
-        
+
         self.update_row_rs_field(len(paired_cols))
 
         encoded_rows = flip_matrix(paired_cols)
-        result_rows = self.rs_row.decode(encoded_rows)
+        result_rows, errors = self.rs_row.decode(encoded_rows, errors=True)
         decoded_cols = flip_matrix(result_rows)
 
         res_cols = separate_columns(decoded_cols)
 
-        return res_cols
+        return res_cols, errors
 
     def get_index_from_base47(self, base47_list):
         id = base47_list[1] * 47 + base47_list[2]
