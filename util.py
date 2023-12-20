@@ -3,6 +3,7 @@ import galois
 
 
 def bits_to_bases(bits, nr_codons=3):
+
     if nr_codons == 3:
         wl = 16
     if nr_codons == 4:
@@ -36,79 +37,142 @@ def bits_to_bases(bits, nr_codons=3):
 
     return strand
 
-#""" 
-#Stack overflow, Brunão: https://stackoverflow.com/questions/75611160/
-#converting-any-file-to-binary-1-and-0-and-then-back-to-original-file-without-cor
-#"""
-
-#functions below here are for decoding process. need to be reorganized and maybe put somewhere else than util?
+# -------------------------------------------------------------------------------------------------------------
+# FUNCTIONS BELOW HERE ARE FOR DECODING PROCESS. MAYBE NEED TO BE REORGANIZED OR PUT SOMEWHERE ELSE THAN UTIL?
+# -------------------------------------------------------------------------------------------------------------
 
 def DNA_matching(DNA_strings):
-    #assumes DNA_strings is a list containing each sequenced nucleotide string. Can be changed if necessary.
+    # Assumes DNA_strings is a list containing each sequenced nucleotide string. Can be changed if necessary.
     
     newly_sorted = []
+    not_matched = []
     strings_copy = DNA_strings.copy()
 
-    for i in range(0,len(DNA_strings,1)):
+    # Keep matching until either all complements are found or all (remaining) strands are determined unmatched.
+    while len(strings_copy) > 0:
 
-        DNA_seq = strings_copy(0)
+        # Selects DNA string to find the complement to.
+        DNA_seq = strings_copy.pop(0)
+        
+        # Creates the exact complement to the DNA sequence.
         complement_seq = complement_str(DNA_seq)
 
-        if complement_seq in strings_copy:
-            
-            newly_sorted = newly_sorted + [DNA_seq, complement_seq]
+        # Finds the (closest) complement in the DNA list.
+        # --> Here does not yet specify a length for or a max error for the initial matching. Might need to be added.
+        found_complement = find_complementary(complement_seq, strings_copy)
 
-            strings_copy.remove(DNA_seq)
-            strings_copy.remove(complement_seq)
+        # If a complement was found puts it with the DNA strand into a list and removes the complement from the still to be matched list.
+        if found_complement != False:
+            newly_sorted.append([DNA_seq, found_complement])
+            strings_copy.remove(found_complement)
+        
+        # If no complement was found in the DNA list the DNA strand is added to a list for furter inspection.
+        else:
+            not_matched.append(DNA_seq)
 
-    return '_'
+    while len(not_matched) > 0:
+
+        
+
+
+
+
+    return newly_sorted
 
 
 def levenshtein_distance(a,b):
-    #icomputes the levenshtein distance between two strings.
-    #with a and b two strings of arbitrary size.
+    # Performs levenshtein distance calculation between two strings a and b.
+    # Good explanation: https://blog.paperspace.com/measuring-text-similarity-using-levenshtein-distance/
     
     LS_matrix = np.zeros((len(b)+1,len(a)+1))
     
-    index_a = 0
-    index_b = 0
-    if len(a) == len(b):
-        for i in range(0, len(a)+1, 1):
+    for j in range(0, len(a)+1, 1):
         
-            LS_matrix[0,i] = index_a
-            LS_matrix[i,0] = index_a
+        LS_matrix[0,j] = j
             
-            index_a = index_a + 1
-            
-    else:
-        for j in range(0, len(a)+1, 1):
-            
-            LS_matrix[0,j] = index_a
-            index_a = index_a + 1
-            
-        for k in range(0, len(b)+1, 1):
-            
-            LS_matrix[k,0] = index_b
-            index_b = index_b + 1
+    for k in range(0, len(b)+1, 1):
+
+        LS_matrix[k,0] = k
     
     for l in range(0, len(b), 1):
-        
+
         for m in range(0, len(a), 1):
             
             vals = [int(LS_matrix[l,m]),int(LS_matrix[l+1,m]),int(LS_matrix[l,m+1])]
             
-            if a[m] == b[l] and len(a[:m]) == len(b[:l]):
+            if a[m] == b[l]:
                 
-                LS_matrix[l+1,m+1] = min(vals)
+                LS_matrix[l+1,m+1] = vals[0]
                 
             else:
                 LS_matrix[l+1,m+1] = min(vals) + 1
-            
+
+    # Returns the Levenshtein distance between the two strings. 
     return int(LS_matrix[len(b),len(a)])
 
 
+def find_complementary(DNA_strand, DNA_list, comp_len=10, max_comp_error=5):
+    # Takes as inputs:
+    # - DNA_strand to which to find the complement.
+    # - DNA_list with all other DNA strands.
+    # - comp_len the length of strand for first comparison.
+    # - max_comp_error the max error allowed in the first comparison.
+
+    comp_vals = [0]*len(DNA_list)
+
+    # Performs the levenshtein distance calculation between the target DNA and the DNA list
+    # where it only compares the first X nucleotides to save on amount of computation.
+    for i in range(0,len(DNA_list),1):
+
+        comp_strand = DNA_list[i]
+
+        comp_vals[i] = levenshtein_distance(DNA_strand[:comp_len],comp_strand[:comp_len])
+
+
+    min_diff = min(comp_vals)
+
+    # Checks if the found minimal error is smaller than the given maximal allowed error.
+    # If not, assumes no clear complement present at current time.
+    if min_diff <= max_comp_error:
+
+        # Since at least one strand with less error than the given max allowed error is found
+        # it assumes the complement strand present in the DNA_list so can be found.
+        found = True
+
+        # Checks if there is only one found complement. If not, performs levenshtein distance
+        # calculation for all found complements with the minimal error to determine which of those has minimal error.
+        if comp_vals.count(min_diff) > 1:
+
+            # Find indexes of all found complements with minimal error.
+            index_list = [i for i, val in enumerate(comp_vals) if val == min_diff]
+            #https://www.geeksforgeeks.org/python-ways-to-find-indices-of-value-in-list/
+
+            comp_vals_long = [0]*len(index_list)
+
+            # Perform levenshtein for all minimal error found complements
+            for i in range(0,len(index_list),1):
+                comp_vals_long[i] = levenshtein_distance(DNA_strand,DNA_list[index_list[i]])
+
+            # Find index of the strand with minimal error and select complement
+            comp_index = index_list[comp_vals_long.index(min(comp_vals_long))]
+            complement = DNA_list[comp_index]
+        
+        # If there is only one found complement with minimal error this is the complement.
+        else:
+            complement = DNA_list[comp_vals.index(min_diff)]
+
+    # If none of the DNA strands have an error smaller than the given max allowed error it is
+    # assumed that the complementary strand is either very damaged or lost.
+    else:
+        # Assumes no complement can be found (at present time) due to either to much damage or the complement being lost.
+        complement = False
+
+    # Returns the closest match from the DNA list to the generated exact DNA string.
+    return complement
+
+
 def complement_str(line):
-    #creates the complement for a DNA string.
+    # Creates the complement for a DNA string.
 
     complement = ""
     for i in range(0,len(line),1):
@@ -125,22 +189,25 @@ def complement_str(line):
             complement = complement + "G"
 
         else:
-            #since illumina sequencing machines can also give an ambiguous result this filters those results out.
-                #e.g. returns "R" if it could be A or G, or returns "Y" if it assumes C or T
-            #for our purposes we assume no ambiguity (i think), so this could be left out.
+            # Since Illumina sequencing machines can also give an ambiguous result this filters those results out.
+                # (e.g. returns "R" if it could be A or G, or returns "Y" if it assumes C or T)
+            # For our purposes we assume no ambiguity (i think), so this could be left out.
             complement = complement + "X"
 
+    # Returns the generated complement to the given DNA string.
     return complement
 
 
 def restructure_B_to_A(base47_list, index_len = 3, redun_B_len = 3):
-    #assumes base_list is a list of base 47 column lists that have already been correctly ordered by index nr. if not, has to be changed.
-    #assumes all base string have the same length. If not, has to be changed.
-    #   - redun_A_len is the horizontal (row) redundancy.
+    # Assumes base47_list is a list of base 47 column lists that have already been correctly ordered by index number
+    # and error checked. If not, has to be changed.
+    #
+    # Assumes all base string have the same length. If not, has to be changed.
     #   - redun_B_len is the vertical (column) redundancy.
 
     base47_Btrim_list = [0]*len(base47_list)
 
+    # Strips the DNA strings of redundancy numbers and index numbers.
     for i in range(0,len(base47_list),1):
 
         base47_str = base47_list[i]
@@ -152,6 +219,7 @@ def restructure_B_to_A(base47_list, index_len = 3, redun_B_len = 3):
 
     b47_rows_list = [0]*col_len
 
+    # Cycles through columns selecing appropriate row numbers
     for j in range(0, col_len, 1):
 
         row = [0]*row_len
@@ -163,11 +231,12 @@ def restructure_B_to_A(base47_list, index_len = 3, redun_B_len = 3):
         
         b47_rows_list[j] = row
 
+    # Returns a list the rows of the data.
     return b47_rows_list
 
 
 def restructure_A_to_final(base47_list, redun_A_len = 3):
-    #assumes base47_list is a list of base 47 row lists.
+    # Assumes base47_list is a list of base 47 row lists that have already been error checked.
 
     col_len = len(base47_list)
     row_len = len(base47_list[0]-redun_A_len)
@@ -179,11 +248,13 @@ def restructure_A_to_final(base47_list, redun_A_len = 3):
 
         restructured_list.extend(base47_trimmed_row)
 
+    # Returns a single list containing all the base 47 numbers.
     return restructured_list
 
 
 def bases_to_47(bases, codon_len=3):
-    #assumes "bases" is a string of bases, so only processes 1 DNA string at a time. can be changed if necessary.
+    # Converts the strings of bases into lists of base 47 numbers.
+    # Assumes bases is a string of bases, so only processes 1 DNA string at a time. Can be changed if necessary.
 
     bases = bases[12:] #staat nu voor een index van 3 nrs en met 1 extra bit voor zero-indication. Moet nog variabel / aanpasbaar.
     index = 0
@@ -193,16 +264,21 @@ def bases_to_47(bases, codon_len=3):
 
         codon = bases[index: index + codon_len]
 
+        # Checks if the selected codon is valid.
         if codon in codons:
             base_47_numbers.append(codons.index(codon))
+
+        # If the selected codon is not valid:
         else:
             base_47_numbers.append('XXX') #moet nog kijken wat precies te zetten, of om gewoon weg te laten en te tellen als deletie
     
+    # Returns a list of base 47 numbers.
     return base_47_numbers
 
 
 def b47_to_binary(b47s, codon_len=3):
-    #assumes b47s is a list of base 47 numbers. if not, can be changed.
+    # Converts a list of base 47 numbers into a string of bits.
+    # Assumes b47s is a list of base 47 numbers. if not, can be changed.
 
     if codon_len == 3:
         nr_bits = 16
@@ -212,6 +288,7 @@ def b47_to_binary(b47s, codon_len=3):
     index = 0
     base_10_numbers = []
 
+    # Converts the 3-long base 47 number into decimal.
     for i in range(0, int(len(b47s)/codon_len), 3):
 
         base_10_val = 0
@@ -228,6 +305,7 @@ def b47_to_binary(b47s, codon_len=3):
 
     bit_string = ""
 
+    # Converts the decimal number into binary.
     for i in range(0, len(base_10_numbers), 1):
         
         decimal = base_10_numbers[i]
@@ -241,6 +319,7 @@ def b47_to_binary(b47s, codon_len=3):
 
         bit_string = bit_string + bit_len
 
+    # Returns a string with all the bits from the data block.
     return bit_string
 
 
