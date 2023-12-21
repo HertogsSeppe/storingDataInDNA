@@ -66,22 +66,60 @@ def DNA_matching(DNA_strings):
             newly_sorted.append([DNA_seq, found_complement])
             strings_copy.remove(found_complement)
         
-        # If no complement was found in the DNA list the DNA strand is added to a list for furter inspection.
+        # If no complement was found in the DNA list the DNA strand is added to a list for further inspection.
         else:
             not_matched.append(DNA_seq)
 
+    no_existing_comp = []
+
     while len(not_matched) > 0:
-
         
+        DNA_seq = not_matched.pop(0)
+        complement_seq = complement_str(DNA_seq)
+
+        found_complement = find_complementary(complement_seq, not_matched, True, 20)
+
+        if found_complement != False:
+            newly_sorted.append([DNA_seq,found_complement])
+            not_matched.remove(found_complement)
+
+        else:
+            no_existing_comp.append(DNA_seq)
+
+    return [newly_sorted, no_existing_comp]
+
+# def insert_del_compensation(a,b):
+#     # Performs Levenshtein distance calculation to detect where deletions or insertions would have occured.
+#     # - "a" a string of correct lenght.
+#     # - "b" a string either too short or too long.
+
+#     LS_matrix = np.zeros((len(b)+1,len(a)+1))
+    
+#     for j in range(0, len(a)+1, 1):
+#         LS_matrix[0,j] = j
+            
+#     for k in range(0, len(b)+1, 1):
+#         LS_matrix[k,0] = k
+
+#     for l in range(0, len(b), 1):
+#         for m in range(0, len(a), 1):
+            
+#             vals = [int(LS_matrix[l,m]),int(LS_matrix[l+1,m]),int(LS_matrix[l,m+1])]
+            
+#             if a[m] == b[l]:
+#                 LS_matrix[l+1,m+1] = vals[0]
+#             else:
+#                 LS_matrix[l+1,m+1] = min(vals) + 1
+
+#                 if min(vals) == vals[1]:
+#                     error = "deletion"
+#                 elif min(vals) == vals[2]:
+#                     error = "insertion"
 
 
-
-
-    return newly_sorted
-
-
-def levenshtein_distance(a,b):
+def levenshtein_distance(a,b, error_check=False):
     # Performs levenshtein distance calculation between two strings a and b.
+    # If error_check is set to true, make sure that "a" is the string of correct length and "b" is the string of wrong legth.
     # Good explanation: https://blog.paperspace.com/measuring-text-similarity-using-levenshtein-distance/
     
     LS_matrix = np.zeros((len(b)+1,len(a)+1))
@@ -98,7 +136,7 @@ def levenshtein_distance(a,b):
 
         for m in range(0, len(a), 1):
             
-            vals = [int(LS_matrix[l,m]),int(LS_matrix[l+1,m]),int(LS_matrix[l,m+1])]
+            vals = [LS_matrix[l,m],LS_matrix[l+1,m],LS_matrix[l,m+1]]
             
             if a[m] == b[l]:
                 
@@ -107,11 +145,61 @@ def levenshtein_distance(a,b):
             else:
                 LS_matrix[l+1,m+1] = min(vals) + 1
 
+    # Performs an error correction for insertions and deletions if one string is of correct length and one string is of wrong length.
+    if error_check == True:
+        errors = []
+        len_a = len(a)
+        len_b = len(b)
+        
+        index_row = 1
+        index_col = 1
+        
+        # For loop that checks which error occurs at which position. At the moment also indicates "subs" if no error occures
+        # at a certain position. For the purposes of our use it is not important or necessary to fix this.
+        for i in range(1,len(b)+1,1):
+            
+            index_a = len_a - index_col
+            index_b = len_b - index_row
+            
+            error_check_vals = [LS_matrix[index_b+1, index_a], LS_matrix[index_b, index_a+1], LS_matrix[index_b, index_a]]
+            
+            if error_check_vals[2] == min(error_check_vals):
+                errors.append((index_b,index_a,"subs"))
+                index_col = index_col+1
+                index_row = index_row+1
+                
+            elif error_check_vals[1] == min(error_check_vals):
+                errors.append((index_b,index_a,"del"))
+                index_row = index_row+1
+            
+            elif error_check_vals[0] == min(error_check_vals):
+                errors.append((index_b,index_a,"ins"))
+                index_col = index_col+1
+        
+        # For loop that cycles throug the errors to check which errors are insertions and which are deletions and to correct them.
+        for j in range(0,len(errors),1):
+            error_nr = errors[j]
+            
+            if error_nr[2] == "del":
+                split_b = [*b]
+                del_index = error_nr[0]
+                del split_b[del_index]
+                b = ''.join(split_b)
+            
+            elif error_nr[2] == "ins":
+                ins_index = error_nr[0]
+                part_1 = b[:ins_index+1]
+                part_2 = b[ins_index+1:]
+                b = part_1 + "A" + part_2
+        
+        # If error_check = True returns string b corrected for insertions and deletions.
+        return b
+    
     # Returns the Levenshtein distance between the two strings. 
     return int(LS_matrix[len(b),len(a)])
 
 
-def find_complementary(DNA_strand, DNA_list, comp_len=10, max_comp_error=5):
+def find_complementary(DNA_strand, DNA_list, full_check=False, max_comp_error=5, comp_len=10):
     # Takes as inputs:
     # - DNA_strand to which to find the complement.
     # - DNA_list with all other DNA strands.
@@ -126,8 +214,10 @@ def find_complementary(DNA_strand, DNA_list, comp_len=10, max_comp_error=5):
 
         comp_strand = DNA_list[i]
 
-        comp_vals[i] = levenshtein_distance(DNA_strand[:comp_len],comp_strand[:comp_len])
-
+        if full_check == True:
+            comp_vals[i] = levenshtein_distance(DNA_strand,comp_strand)
+        else:
+            comp_vals[i] = levenshtein_distance(DNA_strand[:comp_len],comp_strand[:comp_len])
 
     min_diff = min(comp_vals)
 
@@ -135,13 +225,9 @@ def find_complementary(DNA_strand, DNA_list, comp_len=10, max_comp_error=5):
     # If not, assumes no clear complement present at current time.
     if min_diff <= max_comp_error:
 
-        # Since at least one strand with less error than the given max allowed error is found
-        # it assumes the complement strand present in the DNA_list so can be found.
-        found = True
-
         # Checks if there is only one found complement. If not, performs levenshtein distance
-        # calculation for all found complements with the minimal error to determine which of those has minimal error.
-        if comp_vals.count(min_diff) > 1:
+        # calculation for all found complements with the minimal error to determine which of those has minimal error.    
+        if comp_vals.count(min_diff) > 1 and full_check == False:
 
             # Find indexes of all found complements with minimal error.
             index_list = [i for i, val in enumerate(comp_vals) if val == min_diff]
@@ -149,15 +235,17 @@ def find_complementary(DNA_strand, DNA_list, comp_len=10, max_comp_error=5):
 
             comp_vals_long = [0]*len(index_list)
 
-            # Perform levenshtein for all minimal error found complements
+            # Perform full levenshtein for all minimal error found complements
             for i in range(0,len(index_list),1):
                 comp_vals_long[i] = levenshtein_distance(DNA_strand,DNA_list[index_list[i]])
 
             # Find index of the strand with minimal error and select complement
             comp_index = index_list[comp_vals_long.index(min(comp_vals_long))]
             complement = DNA_list[comp_index]
-        
+
         # If there is only one found complement with minimal error this is the complement.
+        # If full_check = True and its still has two strands that have the same error rate it is assumed that two identical strands
+        # were synthesized, so two identical complements exist and it doesn't matter which is selected here.
         else:
             complement = DNA_list[comp_vals.index(min_diff)]
 
