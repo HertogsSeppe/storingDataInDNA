@@ -49,6 +49,8 @@ class Decoder:
         print("Row errors:")
         print(row_errors)
 
+        succes = -1 not in row_errors
+
         # Concatenate all the DNA-strands
         total = []
         for col in res_cols:
@@ -59,6 +61,7 @@ class Decoder:
         binary_string_to_file(bits, outputPath)
 
         print("Done!")
+        return column_errors, row_errors, succes
 
     def read_strands(self, inputPath):
         with open(inputPath, "r") as file:
@@ -90,9 +93,6 @@ class Decoder:
         index_list = []
         errors = []
         for strand in DNA_strands:
-            if strand[0:3] != "CCA":
-                continue
-
             if len(strand) == 46 * 3 - 1:
                 decoded_col, error = self.del_error_correction(strand)
             elif len(strand) == 46 * 3 + 1:
@@ -101,6 +101,9 @@ class Decoder:
                 col = DNA_to_base47(strand)
                 decoded_col, error = self.rs_col.decode(col, errors=True)
             else:
+                continue
+
+            if decoded_col[0] != 1:
                 continue
 
             errors.append(error)
