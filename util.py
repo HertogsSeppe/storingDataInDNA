@@ -1,3 +1,5 @@
+from config import codon_dict, codons
+
 """ 
 Stack overflow, Brunão: https://stackoverflow.com/questions/75611160/
 converting-any-file-to-binary-1-and-0-and-then-back-to-original-file-without-cor
@@ -109,6 +111,19 @@ def base47_to_bin(data, codon_len=4):
         return bits
     bits = bits[:-padding]
     return bits
+
+
+def DNA_to_base47(DNA_data):
+    bases47 = []
+    for i in range(0, len(DNA_data), 3):
+        codon = DNA_data[i : i + 3]
+        if codon not in codons:
+            bases47.append(0)
+            # print("False codon")
+            continue
+        bases47.append(codon_dict[codon])
+
+    return bases47
 
 
 def pair_columns(columns):

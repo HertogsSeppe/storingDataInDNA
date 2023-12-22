@@ -6,9 +6,9 @@ from util import (
     base47_to_bin,
     GF_to_ints,
     complementairy_strand,
-    reversed_strand,
     pair_columns,
     separate_columns,
+    DNA_to_base47,
 )
 
 
@@ -31,10 +31,10 @@ class Decoder:
         print("Decoding...")
 
         # Read in the DNA strand and convert to strand with values base 47
-        Base47_strands = self.read_strands(inputPath)
+        DNA_strands = self.read_strands(inputPath)
 
         # Reed Solomon decoding along colums and index
-        decoded_cols, indexes, column_errors = self.RS_col_decoder(Base47_strands)
+        decoded_cols, indexes, column_errors = self.RS_col_decoder(DNA_strands)
         print("Col errors:")
         print(column_errors)
 
@@ -65,19 +65,13 @@ class Decoder:
             DNA_data = file.read().splitlines()
         file.close()
 
-        Base47_strands = []
+        DNA_strands = []
         for strand in DNA_data:
-            if len(strand) != 46 * 3:
-                strand += "AAAAAAA"
-                strand = strand[0 : 46 * 3]
-
             compl_strand = complementairy_strand(strand)
+            DNA_strands.append(strand)
+            DNA_strands.append(compl_strand)
 
-            # Convert the DNA strand to base 47
-            Base47_strands.append(self.DNA_to_base47(strand))
-            Base47_strands.append(self.DNA_to_base47(compl_strand))
-
-        return Base47_strands
+        return DNA_strands
 
     def DNA_to_base47(self, DNA_data):
         bases47 = []
@@ -91,17 +85,28 @@ class Decoder:
 
         return bases47
 
-    def RS_col_decoder(self, strand_base47):
+    def RS_col_decoder(self, DNA_strands):
         decoded_cols = []
         index_list = []
         errors = []
-        for col in strand_base47:
-            if col[0] != 1:
+        for strand in DNA_strands:
+            if strand[0:3] != "CCA":
                 continue
-            decoded_col, error = self.rs_col.decode(col, errors=True)
+
+            if len(strand) == 46 * 3 - 1:
+                decoded_col, error = self.del_error_correction(strand)
+            elif len(strand) == 46 * 3 + 1:
+                decoded_col, error = self.add_error_correction(strand)
+            elif len(strand) == 46 * 3:
+                col = DNA_to_base47(strand)
+                decoded_col, error = self.rs_col.decode(col, errors=True)
+            else:
+                continue
+
             errors.append(error)
             decoded_cols.append(decoded_col[3:])
             index_list.append(self.get_index_from_base47(decoded_col[:3]))
+
         return decoded_cols, index_list, errors
 
     def RS_row_decoder(self, columns):
@@ -143,3 +148,23 @@ class Decoder:
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, (47**2 - 1) - red, field=self.GF2
         )
+
+    def del_error_correction(self, strand):
+        for i in range(40):
+            added_strand = strand[: 3 * i] + "A" + strand[3 * i :]
+            base_47 = DNA_to_base47(added_strand)
+            col, err = self.rs_col.decode(base_47, errors=True)
+
+            if err != -1:
+                return col, err
+        return col, err
+
+    def add_error_correction(self, strand):
+        for i in range(40):
+            subtr_strand = strand[: 3 * i] + strand[3 * i + 1 :]
+            base_47 = DNA_to_base47(subtr_strand)
+            col, err = self.rs_col.decode(base_47, errors=True)
+
+            if err != -1:
+                return col, err
+        return col, err
