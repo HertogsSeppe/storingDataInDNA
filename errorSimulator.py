@@ -1,5 +1,7 @@
 import random
 
+from util import DNA_strand_to_file
+
 
 class ErrorSimulator:
     def __init__(self):
@@ -7,7 +9,15 @@ class ErrorSimulator:
 
     def induceErrors(self, inputPath, outputPath):
         print("Inducing errors...")
-        # Read in sequences from input
+        # Read in sequences from inputpath
+        DNA_strands = self.read_strands(inputPath)
+
+        # Use sim_seq_simple to induce errors in the strands
+        error_strands = self.sim_seq_simple(DNA_strands)
+
+        # Write the strands back into a file
+        error_strands = "\n".join(error_strands)
+        DNA_strand_to_file(error_strands, outputPath)
 
     def sim_seq_simple(
         self,
@@ -50,3 +60,10 @@ class ErrorSimulator:
                     seq_l.remove("_")
             s[i] = "".join(seq_l)
         return s
+
+    def read_strands(self, inputPath):
+        with open(inputPath, "r") as file:
+            DNA_data = file.read().splitlines()
+        file.close()
+
+        return DNA_data

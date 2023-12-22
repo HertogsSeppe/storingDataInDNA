@@ -16,18 +16,16 @@ class Decoder:
     def __init__(self):
         print("Decoder")
 
-        self.k = 40
-        self.m = 37
+        self.k = 26
+        self.m = 23
         self.red_frac_A = 0.1
-        self.redB = 6
+        self.redB = 20
 
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
 
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
-        self.rs_row = galois.ReedSolomon(
-            47**2 - 1, int((47**2 - 1) * self.red_frac_A), field=self.GF2
-        )
+        self.rs_row = galois.ReedSolomon(47**2 - 1, 47**2 - 1 - 20, field=self.GF2)
 
     def decode(self, inputPath, outputPath):
         print("Decoding...")
@@ -37,6 +35,8 @@ class Decoder:
 
         # Reed Solomon decoding along colums and index
         decoded_cols, indexes, column_errors = self.RS_col_decoder(Base47_strands)
+        print("Col errors:")
+        print(column_errors)
 
         # Sort the columns by index
         sorted_cols = self.sort_columns_on_index(decoded_cols, indexes)
@@ -46,6 +46,8 @@ class Decoder:
 
         # Reed Solomon decoding along rows
         res_cols, row_errors = self.RS_row_decoder(sorted_cols)
+        print("Row errors:")
+        print(row_errors)
 
         # Concatenate all the DNA-strands
         total = []
@@ -66,14 +68,14 @@ class Decoder:
         Base47_strands = []
         for strand in DNA_data:
             if len(strand) != 46 * 3:
-                continue
+                strand += "AAAAAAA"
+                strand = strand[0 : 46 * 3]
+
             compl_strand = complementairy_strand(strand)
 
             # Convert the DNA strand to base 47
             Base47_strands.append(self.DNA_to_base47(strand))
             Base47_strands.append(self.DNA_to_base47(compl_strand))
-            Base47_strands.append(self.DNA_to_base47(reversed_strand(strand)))
-            Base47_strands.append(self.DNA_to_base47(reversed_strand(compl_strand)))
 
         return Base47_strands
 
@@ -92,10 +94,12 @@ class Decoder:
     def RS_col_decoder(self, strand_base47):
         decoded_cols = []
         index_list = []
+        errors = []
         for col in strand_base47:
             if col[0] != 1:
                 continue
-            decoded_col, errors = self.rs_col.decode(col, errors=True)
+            decoded_col, error = self.rs_col.decode(col, errors=True)
+            errors.append(error)
             decoded_cols.append(decoded_col[3:])
             index_list.append(self.get_index_from_base47(decoded_col[:3]))
         return decoded_cols, index_list, errors
@@ -114,14 +118,27 @@ class Decoder:
         return res_cols, errors
 
     def get_index_from_base47(self, base47_list):
-        id = base47_list[1] * 47 + base47_list[2]
-        return int(id)
+        id = int(base47_list[1]) * 47 + int(base47_list[2])
+        return id
 
     def sort_columns_on_index(self, data, indexes):
-        return [x for _, x in sorted(zip(indexes, data))]
+        sorted_data = []
+
+        for i in range(max(indexes)):
+            data_index = indexes.index(i) if i in indexes else -1
+
+            if data_index == -1:
+                sorted_data.append([0] * self.m)
+                print("Missing")
+                continue
+
+            sorted_data.append(data[data_index])
+        return sorted_data
 
     def update_row_rs_field(self, nr_cols):
         red = int(round(nr_cols * self.red_frac_A))
+
+        red = 40
 
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, (47**2 - 1) - red, field=self.GF2

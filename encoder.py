@@ -13,18 +13,16 @@ from config import codons
 class Encoder:
     def __init__(self):
         print("Encoder")
-        self.k = 40
-        self.m = 37
+        self.k = 26
+        self.m = 23
         self.red_frac_A = 0.1
-        self.redB = 6
+        self.redB = 20
 
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
 
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
-        self.rs_row = galois.ReedSolomon(
-            47**2 - 1, int((47**2 - 1) * self.red_frac_A), field=self.GF2
-        )
+        self.rs_row = galois.ReedSolomon(47**2 - 1, 47**2 - 1 - 20, field=self.GF2)
 
     def encode(self, inputPath, outputPath):
         # Read in the binary string
@@ -142,6 +140,7 @@ class Encoder:
 
     def update_row_rs_field(self, nr_cols):
         red = int(round(nr_cols * self.red_frac_A))
+        red = 40
 
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, (47**2 - 1) - red, field=self.GF2
