@@ -84,15 +84,19 @@ def b47_to_binary(b47s, codon_len=3):
     return bit_string
 
 
-def base47_to_bin(data, codon_len=4):
+def base47_to_bin(data, codon_len=4, m=23):
     if codon_len == 3:
         nr_bits = 16
     if codon_len == 4:
         nr_bits = 22
 
-    padding = data[0]
+    col_padding = data[0]
+    padding = data[1]
 
-    data = data[1:]
+    if sum(data[-m:]) == 0:
+        data = data[:-m]
+
+    data = data[2:-col_padding]
 
     bits = ""
 
@@ -109,6 +113,7 @@ def base47_to_bin(data, codon_len=4):
 
     if padding == 0:
         return bits
+
     bits = bits[:-padding]
     return bits
 

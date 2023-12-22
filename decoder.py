@@ -57,7 +57,7 @@ class Decoder:
             total += col
 
         # Convert list of values base 47 to binary string
-        bits = base47_to_bin(total)
+        bits = base47_to_bin(total, codon_len=4, m=self.m)
         binary_string_to_file(bits, outputPath)
 
         print("Done!")

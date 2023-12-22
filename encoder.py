@@ -58,7 +58,7 @@ class Encoder:
             print("ERROR: Invalid sequence")
             return ""
 
-        data_list = []
+        data_list = [0]
 
         if wl == 22:
             # Add zero paddig to the end of the binary string
@@ -66,7 +66,7 @@ class Encoder:
             bits = bits + zeroPad * "0"
 
             # Set the first element of the list to the added padding
-            data_list = [zeroPad]
+            data_list.append(zeroPad)
 
         # Go over the binary string in steps of "wl" and convert to a list of base 47 numbers
         for i in range(len(bits) // wl):
@@ -113,6 +113,8 @@ class Encoder:
         # If there is a remainder, add padded list at the end
         strand = raw_data[-remainder:] + (self.m - remainder) * [0]
         strands.append(strand)
+
+        strands[0][0] = self.m - remainder
 
         return strands
 
