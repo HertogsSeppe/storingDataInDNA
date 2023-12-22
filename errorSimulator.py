@@ -8,7 +8,7 @@ class ErrorSimulator:
         print("ErrorSimulator")
 
     def induceErrors(self, inputPath, outputPath):
-        print("Inducing errors...")
+        # print("Inducing errors...")
         # Read in sequences from inputpath
         DNA_strands = self.read_strands(inputPath)
 

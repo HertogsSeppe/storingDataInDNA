@@ -13,16 +13,19 @@ from config import codons
 class Encoder:
     def __init__(self):
         print("Encoder")
-        self.k = 26
-        self.m = 23
-        self.red_frac_A = 0.1
+        self.redA = 30
         self.redB = 20
+        self.red_frac_A = 0
+        self.k = 46 - self.redB
+        self.m = self.k - 3
 
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
 
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
-        self.rs_row = galois.ReedSolomon(47**2 - 1, 47**2 - 1 - 20, field=self.GF2)
+        self.rs_row = galois.ReedSolomon(
+            47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
+        )
 
     def encode(self, inputPath, outputPath):
         # Read in the binary string
@@ -48,6 +51,18 @@ class Encoder:
         )
         # Bits per base, after reed solomon
         print(len(binaryString), len(dnaStrand), len(binaryString) / (len(dnaStrand)))
+
+    def set_column_redundancy(self, red):
+        self.redB = red
+        self.k = 46 - self.redB
+        self.m = self.k - 3
+        self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
+
+    def set_row_redundancy(self, red):
+        self.redA = red
+        self.rs_row = galois.ReedSolomon(
+            47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
+        )
 
     def bits_to_base47(self, bits, nr_codons=3):
         if nr_codons == 3:
@@ -83,7 +98,7 @@ class Encoder:
         paired_cols = pair_columns(columns)
 
         # Reed Solomon encoding along rows
-        self.update_row_rs_field(len(paired_cols))
+        # self.update_row_rs_field(len(paired_cols))
         rows = flip_matrix(paired_cols)
         encoded_rows = self.rs_row.encode(rows)
 
@@ -142,8 +157,8 @@ class Encoder:
 
     def update_row_rs_field(self, nr_cols):
         red = int(round(nr_cols * self.red_frac_A))
-        red = 40
+        self.redA = red
 
         self.rs_row = galois.ReedSolomon(
-            47**2 - 1, (47**2 - 1) - red, field=self.GF2
+            47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
         )

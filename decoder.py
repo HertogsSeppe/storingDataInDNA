@@ -15,28 +15,30 @@ from util import (
 class Decoder:
     def __init__(self):
         print("Decoder")
-
-        self.k = 26
-        self.m = 23
-        self.red_frac_A = 0.1
+        self.redA = 30
         self.redB = 20
+        self.red_frac_A = 0
+        self.k = 46 - self.redB
+        self.m = self.k - 3
 
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
 
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
-        self.rs_row = galois.ReedSolomon(47**2 - 1, 47**2 - 1 - 20, field=self.GF2)
+        self.rs_row = galois.ReedSolomon(
+            47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
+        )
 
     def decode(self, inputPath, outputPath):
-        print("Decoding...")
+        # print("Decoding...")
 
         # Read in the DNA strand and convert to strand with values base 47
         DNA_strands = self.read_strands(inputPath)
 
         # Reed Solomon decoding along colums and index
         decoded_cols, indexes, column_errors = self.RS_col_decoder(DNA_strands)
-        print("Col errors:")
-        print(column_errors)
+        # print("Col errors:")
+        # print(column_errors)
 
         # Sort the columns by index
         sorted_cols = self.sort_columns_on_index(decoded_cols, indexes)
@@ -46,8 +48,8 @@ class Decoder:
 
         # Reed Solomon decoding along rows
         res_cols, row_errors = self.RS_row_decoder(sorted_cols)
-        print("Row errors:")
-        print(row_errors)
+        # print("Row errors:")
+        # print(row_errors)
 
         succes = -1 not in row_errors
 
@@ -60,8 +62,19 @@ class Decoder:
         bits = base47_to_bin(total, codon_len=4, m=self.m)
         binary_string_to_file(bits, outputPath)
 
-        print("Done!")
         return column_errors, row_errors, succes
+
+    def set_column_redundancy(self, red):
+        self.redB = red
+        self.k = 46 - self.redB
+        self.m = self.k - 3
+        self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
+
+    def set_row_redundancy(self, red):
+        self.redA = red
+        self.rs_row = galois.ReedSolomon(
+            47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
+        )
 
     def read_strands(self, inputPath):
         with open(inputPath, "r") as file:
@@ -115,7 +128,7 @@ class Decoder:
     def RS_row_decoder(self, columns):
         paired_cols = pair_columns(columns)
 
-        self.update_row_rs_field(len(paired_cols))
+        # self.update_row_rs_field(len(paired_cols))
 
         encoded_rows = flip_matrix(paired_cols)
         result_rows, errors = self.rs_row.decode(encoded_rows, errors=True)
@@ -137,7 +150,6 @@ class Decoder:
 
             if data_index == -1:
                 sorted_data.append([0] * self.m)
-                print("Missing")
                 continue
 
             sorted_data.append(data[data_index])
@@ -145,11 +157,10 @@ class Decoder:
 
     def update_row_rs_field(self, nr_cols):
         red = int(round(nr_cols * self.red_frac_A))
-
-        red = 40
+        self.redA = red
 
         self.rs_row = galois.ReedSolomon(
-            47**2 - 1, (47**2 - 1) - red, field=self.GF2
+            47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
         )
 
     def del_error_correction(self, strand):
