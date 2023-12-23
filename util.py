@@ -5,6 +5,8 @@ converting-any-file-to-binary-1-and-0-and-then-back-to-original-file-without-cor
 
 
 def file_to_binary_string(file_path):
+    # Obtains binary data from a file.
+
     with open(file_path, "rb") as file:
         binary_code = file.read()
         binary_string = "".join(format(byte, "08b") for byte in binary_code)
@@ -12,6 +14,8 @@ def file_to_binary_string(file_path):
 
 
 def binary_string_to_file(binary_string, file_path):
+    # Writes a string of binary data to a file.
+
     with open(file_path, "wb") as file:
         bytes_list = [
             int(binary_string[i : i + 8], 2) for i in range(0, len(binary_string), 8)
@@ -21,6 +25,8 @@ def binary_string_to_file(binary_string, file_path):
 
 
 def DNA_strand_to_file(strand, file_path):
+    # Writes a string of nucleotides to a file.
+
     with open(file_path, "w") as file:
         file.write(strand)
 
@@ -112,6 +118,7 @@ def base47_to_bin(data, codon_len=4):
 
 
 def pair_columns(columns):
+
     paired_cols = []
     for i in range(0, len(columns) - 1, 2):
         new_col = []
@@ -137,7 +144,7 @@ def separate_columns(columns):
     return sep_cols
 
 
-def complementairy_strand(strand):
+def complementary_strand(strand):
     compl_strand = (
         strand.replace("G", "c").replace("C", "g").replace("A", "t").replace("T", "a")
     )
@@ -146,3 +153,75 @@ def complementairy_strand(strand):
 
 def reversed_strand(strand):
     return strand[::-1]
+
+def levenshtein_distance(a,b, error_check=False):
+    # Performs levenshtein distance calculation between two strings a and b.
+    # If error_check is set to true, make sure that "a" is the string of correct length and "b" is the string of wrong legth.
+    # Good explanation: https://blog.paperspace.com/measuring-text-similarity-using-levenshtein-distance/
+    
+    LS_matrix = np.zeros((len(b)+1,len(a)+1))
+    len_a = len(a)
+    len_b = len(b)
+    
+    for j in range(0, len_a+1, 1):
+        LS_matrix[0,j] = j
+            
+    for k in range(0, len_b+1, 1):
+        LS_matrix[k,0] = k
+    
+    for l in range(0, len_b, 1):
+        for m in range(0, len_a, 1):
+            vals = [LS_matrix[l,m],LS_matrix[l+1,m],LS_matrix[l,m+1]]
+            
+            if a[m] == b[l]:
+                LS_matrix[l+1,m+1] = vals[0]
+            else:
+                LS_matrix[l+1,m+1] = min(vals) + 1
+
+    # Performs an error correction for insertions and deletions if one string is of correct length and one string is of wrong length.
+    if error_check == True:
+        errors = []
+        index_row = 1
+        index_col = 1
+        
+        # Checks which error occurs at which position. At the moment also indicates "subs" if no error occures
+        # at a certain position. For the purposes of our use it is not important or necessary to fix this.
+        for i in range(1,len(b)+1,1):
+            
+            index_a = len_a - index_col
+            index_b = len_b - index_row
+            error_check_vals = [LS_matrix[index_b+1, index_a], LS_matrix[index_b, index_a+1], LS_matrix[index_b, index_a]]
+            
+            if error_check_vals[2] == min(error_check_vals):
+                errors.append((index_b,index_a,"subs"))
+                index_col = index_col+1
+                index_row = index_row+1
+                
+            elif error_check_vals[1] == min(error_check_vals):
+                errors.append((index_b,index_a,"del"))
+                index_row = index_row+1
+            
+            elif error_check_vals[0] == min(error_check_vals):
+                errors.append((index_b,index_a,"ins"))
+                index_col = index_col+1
+        
+        # Cycles through the errors to check which errors are insertions and which are deletions and counters them.
+        for j in range(0,len(errors),1):
+            error_nr = errors[j]
+            
+            if error_nr[2] == "del":
+                split_b = [*b]
+                del_index = error_nr[0]
+                del split_b[del_index]
+                b = ''.join(split_b)
+
+            elif error_nr[2] == "ins":
+                ins_index = error_nr[0]
+                part_1 = b[:ins_index+1]
+                part_2 = b[ins_index+1:]
+                b = part_1 + "A" + part_2
+        # If error_check = True, returns the corrected string b.
+        return b
+    
+    # If error_check = False, Returns the Levenshtein distance between the two strings. 
+    return int(LS_matrix[len(b),len(a)])

@@ -5,10 +5,11 @@ from util import (
     binary_string_to_file,
     base47_to_bin,
     GF_to_ints,
-    complementairy_strand,
+    complementary_strand,
     reversed_strand,
     pair_columns,
     separate_columns,
+    levenshtein_distance,
 )
 
 
@@ -24,6 +25,8 @@ class Decoder:
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
 
+        self.complementary = False
+
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, int((47**2 - 1) * self.red_frac_A), field=self.GF2
@@ -34,6 +37,8 @@ class Decoder:
 
         # Read in the DNA strand and convert to strand with values base 47
         Base47_strands = self.read_strands(inputPath)
+
+        
 
         # Reed Solomon decoding along colums and index
         decoded_cols, indexes, column_errors = self.RS_col_decoder(Base47_strands)
@@ -64,18 +69,25 @@ class Decoder:
         file.close()
 
         Base47_strands = []
-        for strand in DNA_data:
-            if len(strand) != 46 * 3:
-                continue
-            compl_strand = complementairy_strand(strand)
 
-            # Convert the DNA strand to base 47
-            Base47_strands.append(self.DNA_to_base47(strand))
-            Base47_strands.append(self.DNA_to_base47(compl_strand))
-            Base47_strands.append(self.DNA_to_base47(reversed_strand(strand)))
-            Base47_strands.append(self.DNA_to_base47(reversed_strand(compl_strand)))
+        if self.complementary == False:
+            for strand in DNA_data:
+                if len(strand) != 46 * 3:
+                        continue
+                compl_strand = complementary_strand(strand) 
+                # ---> Hier wordt de complementaire nu gesynthetiseed na sequencing ipv dat de complementaire daarvoor al bestaat?
 
-        return Base47_strands
+                # Convert the DNA strand to base 47
+                Base47_strands.append(self.DNA_to_base47(strand))
+                Base47_strands.append(self.DNA_to_base47(compl_strand))
+                Base47_strands.append(self.DNA_to_base47(reversed_strand(strand)))
+                Base47_strands.append(self.DNA_to_base47(reversed_strand(compl_strand)))
+
+            return Base47_strands
+
+        elif self.complementary == True:
+            return DNA_data
+        
 
     def DNA_to_base47(self, DNA_data):
         bases47 = []

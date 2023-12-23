@@ -6,12 +6,14 @@ from util import (
     flip_matrix,
     pair_columns,
     separate_columns,
+    complementary_strand
 )
 from config import codons
 
 
 class Encoder:
     def __init__(self):
+        # ---> Moet hier uitleg bij van wat alles betekent?
         print("Encoder")
         self.k = 40
         self.m = 37
@@ -20,6 +22,8 @@ class Encoder:
 
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
+
+        self.complementary = False
 
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
         self.rs_row = galois.ReedSolomon(
@@ -33,12 +37,14 @@ class Encoder:
         # Convert the binary string to a list of values base 47
         base47_list = self.bits_to_base47(binaryString, 4)
 
-        # Apply reed solomon error correction and cut up in lists of lenth k + redA
+        # Add Reed-Solomon redundancy and cut up in lists of length k + redA
         encrypted_data = self.apply_reed_solomon(base47_list)
 
         # Convert the base 47 lists to dna strands
-        dnaStrand = self.base47_to_DNA(encrypted_data)
+        dnaStrand = self.base47_to_DNA(encrypted_data, compl = True)
 
+        # Write the DNA strands to a file
+        # ---> Is the complementary strand added in this?
         DNA_strand_to_file(dnaStrand, outputPath)
         # binary_string_to_file(base47_to_bin(base47_list), outputPath)
 
@@ -52,6 +58,11 @@ class Encoder:
         print(len(binaryString), len(dnaStrand), len(binaryString) / (len(dnaStrand)))
 
     def bits_to_base47(self, bits, nr_codons=3):
+        # Converts a string of binary numbers into a list of base 47 numbers.
+        # - bits: string of binary information
+        # - nr_codons: length of the base 47 number. (e.g: 22 bits write to a number in 47^4, so 4-long base 47 number)
+
+        # Determine binary section length based on given length of base 47 number
         if nr_codons == 3:
             wl = 16
         elif nr_codons == 4:
@@ -63,11 +74,11 @@ class Encoder:
         data_list = []
 
         if wl == 22:
-            # Add zero paddig to the end of the binary string
+            # Add zero paddig to the end of the binary string to ensure exact division by 22 is possible
             zeroPad = (wl - len(bits) % wl) % wl
             bits = bits + zeroPad * "0"
 
-            # Set the first element of the list to the added padding
+            # Set the first element of the list to indicate the amount of added padding
             data_list = [zeroPad]
 
         # Go over the binary string in steps of "wl" and convert to a list of base 47 numbers
@@ -103,6 +114,9 @@ class Encoder:
         return result
 
     def split_strands(self, raw_data):
+        # Splits the complete list of base 47 numbers into columns of length m.
+        # - raw_data: a list of base 47 numbers.
+
         strands = []
         remainder = len(raw_data) % self.m
 
@@ -123,6 +137,10 @@ class Encoder:
         return id_sequence
 
     def word_to_base47(self, word, nr_codons):
+        # Converts a decimal number into a base 47 number.
+        # - word: decimal integer.
+        # - nr_codons: the length of the base 47 number.
+
         strand = []
 
         for i in range(nr_codons - 1, -1, -1):
@@ -133,11 +151,23 @@ class Encoder:
         return strand
 
     def base47_to_DNA(self, data):
+        # Converts lists of base 47 numbers into nucleotide sequences.
+        # - data: a list of lists of base 47 sequences.
+        
         nucleotides = ""
         for strand in data:
+            single_strand = ""
+
             for index in strand:
                 nucleotides += codons[int(index)]
+                single_strand += codons[int(index)]
+            
             nucleotides += "\n"
+
+            if self.complementary == True:
+                nucleotides += complementary_strand(single_strand)
+                nucleotides += "\n"
+            
         return nucleotides
 
     def update_row_rs_field(self, nr_cols):
