@@ -26,6 +26,8 @@ class Decoder:
         self.GF2 = galois.GF(47**2)
 
         self.complementary = False
+        self.bases_per_b47_nr = 3
+        self.corr_strand_length = self.k * self.bases_per_b47_nr + self.redB * self.bases_per_b47_nr
 
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
         self.rs_row = galois.ReedSolomon(
@@ -40,6 +42,7 @@ class Decoder:
 
         if self.complementary == True:
             matched_strands, unmatched_strands = self.DNA_matching(Base47_strands)
+            ins_del_corrected_strands, non_corrected_strands = self.insert_delet_compensation(matched_strands)
 
         # Reed Solomon decoding along colums and index
         decoded_cols, indexes, column_errors = self.RS_col_decoder(Base47_strands)
@@ -102,18 +105,6 @@ class Decoder:
             bases47.append(codon_dict[codon])
 
         return bases47
-
-
-    def RS_col_decoder(self, strand_base47):
-        decoded_cols = []
-        index_list = []
-        for col in strand_base47:
-            if col[0] != 1:
-                continue
-            decoded_col, errors = self.rs_col.decode(col, errors=True)
-            decoded_cols.append(decoded_col[3:])
-            index_list.append(self.get_index_from_base47(decoded_col[:3]))
-        return decoded_cols, index_list, errors
     
 
     def DNA_matching(self, DNA_strings):
@@ -123,7 +114,7 @@ class Decoder:
         not_matched = []
         strings_copy = DNA_strings.copy()
 
-        # Keep matching until either all complements are found or all (remaining) strands are determined unmatched.
+        # Keep matching until either all complements are found or all (remaining) strands are determined unmatched for current error rate.
         while len(strings_copy) > 0:
 
             # Selects DNA string to find the complement to. Removes it from the list as to not perfomr unnecessary double checks.
@@ -147,14 +138,14 @@ class Decoder:
 
         no_existing_comp = []
 
-        # If no complement was found during initial search now does an addtional search on the remaining unmatched strands for
+        # If no complement was found during initial search it now does an addtional search on the remaining unmatched strands for
         # a higher allowed error margin.
         while len(not_matched) > 0:
         
             DNA_seq = not_matched.pop(0)
             complement_seq = complementary_strand(DNA_seq)
 
-            # Here does a full (True) levenshtein check between each strand with an allowed error margin of 20 (for now random value)
+            # Here does a full (True) Levenshtein check between each strand with an allowed error margin of 20 (for now random value)
             found_complement = self.find_complementary(complement_seq, not_matched, True, 20)
 
             # If a match was found for these assumptions:
@@ -260,49 +251,101 @@ class Decoder:
             errors = []
             index_row = 1
             index_col = 1
+            errors_present = True
         
-            # Checks which error occurs at which position. At the moment also indicates "subs" if no error occures
+            # Checks which error occurs at which position. At the moment also indicates a "subs" in cases no error occured
             # at a certain position. For the purposes of our use it is not important or necessary to fix this.
-            for i in range(1,len(b)+1,1):
+            while errors_present == True:
             
                 index_a = len_a - index_col
                 index_b = len_b - index_row
                 error_check_vals = [LS_matrix[index_b+1, index_a], LS_matrix[index_b, index_a+1], LS_matrix[index_b, index_a]]
             
                 if error_check_vals[2] == min(error_check_vals):
-                    errors.append((index_b,index_a,"subs"))
+                    errors.append((index_b,"subs"))
                     index_col = index_col+1
                     index_row = index_row+1
                 
                 elif error_check_vals[1] == min(error_check_vals):
-                    errors.append((index_b,index_a,"del"))
+                    errors.append((index_b,"ins"))
                     index_row = index_row+1
             
                 elif error_check_vals[0] == min(error_check_vals):
-                    errors.append((index_b,index_a,"ins"))
+                    errors.append((index_b,"del"))
                     index_col = index_col+1
+                
+                # If the error value drops to zero there are no more errors present between the two strings,
+                # so the loop can be ended early.
+                if min(error_check_vals) == 0:
+                    errors_present = False
         
             # Cycles through the errors to check which errors are insertions and which are deletions and counters them.
             for j in range(0,len(errors),1):
                 error_nr = errors[j]
-            
-                if error_nr[2] == "del":
+
+                # If the error found is an insertion, removes a base at the right index.
+                if error_nr[2] == "ins":
                     split_b = [*b]
                     del_index = error_nr[0]
                     del split_b[del_index]
                     b = ''.join(split_b)
 
-                elif error_nr[2] == "ins":
+                # If the error found is an deletion, inserts an A at the right index. (can be any base, so can easily be changed)
+                elif error_nr[2] == "del":
                     ins_index = error_nr[0]
                     part_1 = b[:ins_index+1]
                     part_2 = b[ins_index+1:]
                     b = part_1 + "A" + part_2
+                    
             # If error_check = True, returns the corrected string b.
             return b
     
         # If error_check = False, Returns the Levenshtein distance between the two strings. 
         return int(LS_matrix[len(b),len(a)])
     
+
+    def insert_delet_compensation(self, DNA_strands):
+        # Partial insertion and deletion correction using Levenshtein.
+        # - DNA_strands a list of lists of DNA_strands with matched complementary strands.
+        
+        cor_len = self.corr_strand_length
+        corrected_strands_list = []
+        uncorrected_strands_list = []
+
+        for i in range(0,len(DNA_strands),1):
+            strand_pair = DNA_strands[i]
+            
+            # If one of the two strands is of the correct length the other length can be adjusted at the right
+            # locations where insertion or deletion occured.
+            if len(strand_pair[0]) == cor_len and len(strand_pair[1]) != cor_len:
+                strand_pair[1] = self.levenshtein(strand_pair[0],strand_pair[1],True)
+                corrected_strands_list.append(strand_pair)
+
+            elif len(strand_pair[1]) == cor_len and len(strand_pair[0]) != cor_len:
+                strand_pair[0] = self.levenshtein(strand_pair[1],strand_pair[0],True)
+                corrected_strands_list.append(strand_pair)
+
+            # If both strands are of wrong length this method of error compensation cannot be applied
+            elif len(strand_pair[0]) != cor_len and len(strand_pair[1]) != cor_len:
+                uncorrected_strands_list.append(strand_pair)
+            
+            # If both strands are of correct length nothing has to be done as of yet.
+            else:
+                corrected_strands_list.append(strand_pair)
+
+        return corrected_strands_list, uncorrected_strands_list
+
+    def RS_col_decoder(self, strand_base47):
+        decoded_cols = []
+        index_list = []
+        for col in strand_base47:
+            if col[0] != 1:
+                continue
+            decoded_col, errors = self.rs_col.decode(col, errors=True)
+            decoded_cols.append(decoded_col[3:])
+            index_list.append(self.get_index_from_base47(decoded_col[:3]))
+        return decoded_cols, index_list, errors
+
 
     def RS_row_decoder(self, columns):
         paired_cols = pair_columns(columns)
