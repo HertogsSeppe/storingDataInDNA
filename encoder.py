@@ -15,10 +15,11 @@ class Encoder:
     def __init__(self):
         # ---> Moet hier uitleg bij van wat alles betekent?
         print("Encoder")
-        self.k = 40
-        self.m = 37
-        self.red_frac_A = 0.1
-        self.redB = 6
+        self.redA = 30
+        self.redB = 20
+        self.red_frac_A = 0
+        self.k = 46 - self.redB
+        self.m = self.k - 3
 
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
@@ -27,7 +28,7 @@ class Encoder:
 
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
         self.rs_row = galois.ReedSolomon(
-            47**2 - 1, int((47**2 - 1) * self.red_frac_A), field=self.GF2
+            47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
         )
 
     def encode(self, inputPath, outputPath):
@@ -57,6 +58,18 @@ class Encoder:
         # Bits per base, after reed solomon
         print(len(binaryString), len(dnaStrand), len(binaryString) / (len(dnaStrand)))
 
+    def set_column_redundancy(self, red):
+        self.redB = red
+        self.k = 46 - self.redB
+        self.m = self.k - 3
+        self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
+
+    def set_row_redundancy(self, red):
+        self.redA = red
+        self.rs_row = galois.ReedSolomon(
+            47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
+        )
+
     def bits_to_base47(self, bits, nr_codons=3):
         # Converts a string of binary numbers into a list of base 47 numbers.
         # - bits: string of binary information
@@ -71,15 +84,15 @@ class Encoder:
             print("ERROR: Invalid sequence")
             return ""
 
-        data_list = []
+        data_list = [0]
 
         if wl == 22:
             # Add zero paddig to the end of the binary string to ensure exact division by 22 is possible
             zeroPad = (wl - len(bits) % wl) % wl
             bits = bits + zeroPad * "0"
 
-            # Set the first element of the list to indicate the amount of added padding
-            data_list = [zeroPad]
+            # Set the first element of the list to the added padding
+            data_list.append(zeroPad)
 
         # Go over the binary string in steps of "wl" and convert to a list of base 47 numbers
         for i in range(len(bits) // wl):
@@ -96,7 +109,7 @@ class Encoder:
         paired_cols = pair_columns(columns)
 
         # Reed Solomon encoding along rows
-        self.update_row_rs_field(len(paired_cols))
+        # self.update_row_rs_field(len(paired_cols))
         rows = flip_matrix(paired_cols)
         encoded_rows = self.rs_row.encode(rows)
 
@@ -129,6 +142,8 @@ class Encoder:
         # If there is a remainder, add padded list at the end
         strand = raw_data[-remainder:] + (self.m - remainder) * [0]
         strands.append(strand)
+
+        strands[0][0] = self.m - remainder
 
         return strands
 
@@ -172,7 +187,8 @@ class Encoder:
 
     def update_row_rs_field(self, nr_cols):
         red = int(round(nr_cols * self.red_frac_A))
+        self.redA = red
 
         self.rs_row = galois.ReedSolomon(
-            47**2 - 1, (47**2 - 1) - red, field=self.GF2
+            47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
         )
