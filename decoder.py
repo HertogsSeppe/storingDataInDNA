@@ -6,17 +6,11 @@ from util import (
     binary_string_to_file,
     base47_to_bin,
     GF_to_ints,
-<<<<<<< HEAD
     complementary_strand,
     reversed_strand,
     pair_columns,
-    separate_columns
-=======
-    complementairy_strand,
-    pair_columns,
     separate_columns,
     DNA_to_base47,
->>>>>>> im_scared_of_merging_so_just_in_case
 )
 
 
@@ -48,7 +42,7 @@ class Decoder:
         DNA_strands = self.read_strands(inputPath)
 
         if self.complementary == True:
-            matched_strands, unmatched_strands = self.DNA_matching(Base47_strands)
+            matched_strands, unmatched_strands = self.DNA_matching(DNA_strands)
             ins_del_corrected_strands, non_corrected_strands = self.insert_delet_compensation(matched_strands)
 
         # Reed Solomon decoding along colums and index
@@ -98,7 +92,6 @@ class Decoder:
             DNA_data = file.read().splitlines()
         file.close()
 
-<<<<<<< HEAD
         Base47_strands = []
 
         if self.complementary == False:
@@ -119,15 +112,6 @@ class Decoder:
         elif self.complementary == True:
             return DNA_data
         
-=======
-        DNA_strands = []
-        for strand in DNA_data:
-            compl_strand = complementairy_strand(strand)
-            DNA_strands.append(strand)
-            DNA_strands.append(compl_strand)
-
-        return DNA_strands
->>>>>>> im_scared_of_merging_so_just_in_case
 
     def DNA_to_base47(self, DNA_data):
         bases47 = []
