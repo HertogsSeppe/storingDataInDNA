@@ -8,7 +8,6 @@ from util import (
     complementairy_strand,
     pair_columns,
     separate_columns,
-    DNA_to_base47,
 )
 
 
@@ -16,10 +15,12 @@ class Decoder:
     def __init__(self):
         print("Decoder")
         self.redA = 30
-        self.redB = 20
         self.red_frac_A = 0
-        self.k = 46 - self.redB
-        self.m = self.k - 3
+        self.k = (47**2 - 1) - self.redA
+
+        self.redB = 20
+        self.index_len = 4
+        self.m = 46 - self.index_len - self.redB
 
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
@@ -66,12 +67,12 @@ class Decoder:
 
     def set_column_redundancy(self, red):
         self.redB = red
-        self.k = 46 - self.redB
-        self.m = self.k - 3
+        self.m = 46 - self.index_len - self.redB
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
 
     def set_row_redundancy(self, red):
         self.redA = red
+        self.k = (47**2 - 1) - self.redA
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
         )
@@ -91,15 +92,16 @@ class Decoder:
 
     def DNA_to_base47(self, DNA_data):
         bases47 = []
+        false_codons = 0
         for i in range(0, len(DNA_data), 3):
             codon = DNA_data[i : i + 3]
             if codon not in codons:
                 bases47.append(0)
-                # print("False codon")
+                false_codons += 1
                 continue
             bases47.append(codon_dict[codon])
 
-        return bases47
+        return bases47, false_codons
 
     def RS_col_decoder(self, DNA_strands):
         decoded_cols = []
@@ -107,21 +109,24 @@ class Decoder:
         errors = []
         for strand in DNA_strands:
             if len(strand) == 46 * 3 - 1:
-                decoded_col, error = self.del_error_correction(strand)
+                decoded_col, error, false_bases = self.del_error_correction(strand)
             elif len(strand) == 46 * 3 + 1:
-                decoded_col, error = self.add_error_correction(strand)
+                decoded_col, error, false_bases = self.add_error_correction(strand)
             elif len(strand) == 46 * 3:
-                col = DNA_to_base47(strand)
+                col, false_bases = self.DNA_to_base47(strand)
                 decoded_col, error = self.rs_col.decode(col, errors=True)
             else:
                 continue
 
-            if decoded_col[0] != 1:
+            # if decoded_col[0] != 1:
+            #     continue
+
+            if false_bases > self.redB | error == -1:
                 continue
 
             errors.append(error)
-            decoded_cols.append(decoded_col[3:])
-            index_list.append(self.get_index_from_base47(decoded_col[:3]))
+            decoded_cols.append(decoded_col[self.index_len :])
+            index_list.append(self.get_index_from_base47(decoded_col[: self.index_len]))
 
         return decoded_cols, index_list, errors
 
@@ -138,8 +143,12 @@ class Decoder:
 
         return res_cols, errors
 
-    def get_index_from_base47(self, base47_list):
-        id = int(base47_list[1]) * 47 + int(base47_list[2])
+    def get_index_from_base47(self, base47_list, index_len=4):
+        id = 0
+
+        for i in range(index_len):
+            id += int(base47_list[i]) * (47 ** (index_len - 1 - i))
+
         return id
 
     def sort_columns_on_index(self, data, indexes):
@@ -166,19 +175,19 @@ class Decoder:
     def del_error_correction(self, strand):
         for i in range(40):
             added_strand = strand[: 3 * i] + "A" + strand[3 * i :]
-            base_47 = DNA_to_base47(added_strand)
+            base_47, false_bases = self.DNA_to_base47(added_strand)
             col, err = self.rs_col.decode(base_47, errors=True)
 
             if err != -1:
-                return col, err
-        return col, err
+                return col, err, false_bases
+        return col, err, false_bases
 
     def add_error_correction(self, strand):
         for i in range(40):
             subtr_strand = strand[: 3 * i] + strand[3 * i + 1 :]
-            base_47 = DNA_to_base47(subtr_strand)
+            base_47, false_bases = self.DNA_to_base47(subtr_strand)
             col, err = self.rs_col.decode(base_47, errors=True)
 
             if err != -1:
-                return col, err
-        return col, err
+                return col, err, false_bases
+        return col, err, false_bases

@@ -14,10 +14,12 @@ class Encoder:
     def __init__(self):
         print("Encoder")
         self.redA = 30
-        self.redB = 20
         self.red_frac_A = 0
-        self.k = 46 - self.redB
-        self.m = self.k - 3
+        self.k = (47**2 - 1) - self.redA
+
+        self.redB = 20
+        self.index_len = 4
+        self.m = 46 - self.index_len - self.redB
 
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
@@ -36,6 +38,7 @@ class Encoder:
 
         # Apply reed solomon error correction and cut up in lists of lenth k + redA
         encrypted_data = self.apply_reed_solomon(base47_list)
+        print(encrypted_data)
 
         # Convert the base 47 lists to dna strands
         dnaStrand = self.base47_to_DNA(encrypted_data)
@@ -54,12 +57,12 @@ class Encoder:
 
     def set_column_redundancy(self, red):
         self.redB = red
-        self.k = 46 - self.redB
-        self.m = self.k - 3
+        self.m = 46 - self.index_len - self.redB
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
 
     def set_row_redundancy(self, red):
         self.redA = red
+        self.k = (47**2 - 1) - self.redA
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
         )
@@ -133,8 +136,12 @@ class Encoder:
 
         return strands
 
-    def generate_index_base47(self, id=0):
-        id_sequence = [1, id // 47, id % 47]
+    def generate_index_base47(self, id, index_len=4):
+        id_sequence = []
+
+        for i in range(index_len - 1, -1, -1):
+            id_sequence.append((id // (47**i)) % 47)
+
         return id_sequence
 
     def word_to_base47(self, word, nr_codons):

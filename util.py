@@ -123,7 +123,7 @@ def DNA_to_base47(DNA_data):
     for i in range(0, len(DNA_data), 3):
         codon = DNA_data[i : i + 3]
         if codon not in codons:
-            bases47.append(0)
+            bases47.append(-1)
             # print("False codon")
             continue
         bases47.append(codon_dict[codon])
@@ -161,8 +161,21 @@ def complementairy_strand(strand):
     compl_strand = (
         strand.replace("G", "c").replace("C", "g").replace("A", "t").replace("T", "a")
     )
-    return compl_strand.upper()
+    return compl_strand.upper()[::-1]
 
 
-def reversed_strand(strand):
-    return strand[::-1]
+id = 400000
+id_sequence = []
+
+for i in range(4 - 1, -1, -1):
+    id_sequence.append((id // (47**i)) % 47)
+
+print(id_sequence)
+
+id = 0
+
+for i in range(4):
+    id += int(id_sequence[i]) * (47 ** (4 - 1 - i))
+    print(id)
+
+print(id)
