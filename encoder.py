@@ -97,17 +97,21 @@ class Encoder:
         # Split the strands into segments of length m
         columns = self.split_strands(raw_data)
 
-        # Pair every two columns for encoding with exension field
-        paired_cols = pair_columns(columns)
+        message_len = 2 * ((47**2 - 1) - self.redA)
+        separated_cols = []
 
-        # Reed Solomon encoding along rows
-        # self.update_row_rs_field(len(paired_cols))
-        rows = flip_matrix(paired_cols)
-        encoded_rows = self.rs_row.encode(rows)
+        for i in range(len(columns) // message_len + 1):
+            # Pair every two columns for encoding with exension field
+            paired_cols = pair_columns(columns[i * message_len : (i + 1) * message_len])
 
-        # Separate the paired columns
-        paired_encoded_cols = flip_matrix(encoded_rows)
-        separated_cols = separate_columns(paired_encoded_cols)
+            # Reed Solomon encoding along rows
+            # self.update_row_rs_field(len(paired_cols))
+            rows = flip_matrix(paired_cols)
+            encoded_rows = self.rs_row.encode(rows)
+
+            # Separate the paired columns
+            paired_encoded_cols = flip_matrix(encoded_rows)
+            separated_cols += separate_columns(paired_encoded_cols)
 
         # Add index
         for i in range(len(separated_cols)):

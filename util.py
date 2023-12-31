@@ -162,20 +162,3 @@ def complementairy_strand(strand):
         strand.replace("G", "c").replace("C", "g").replace("A", "t").replace("T", "a")
     )
     return compl_strand.upper()[::-1]
-
-
-id = 400000
-id_sequence = []
-
-for i in range(4 - 1, -1, -1):
-    id_sequence.append((id // (47**i)) % 47)
-
-print(id_sequence)
-
-id = 0
-
-for i in range(4):
-    id += int(id_sequence[i]) * (47 ** (4 - 1 - i))
-    print(id)
-
-print(id)

@@ -47,12 +47,21 @@ class Decoder:
         # Convert the galois field back to an array of integers
         sorted_cols = GF_to_ints(sorted_cols)
 
-        # Reed Solomon decoding along rows
-        res_cols, row_errors = self.RS_row_decoder(sorted_cols)
-        # print("Row errors:")
-        # print(row_errors)
+        res_cols = []
+        row_errors = []
+        succes = []
 
-        succes = -1 not in row_errors
+        for i in range(len(sorted_cols) // (2 * (47**2 - 1)) + 1):
+            # Reed Solomon decoding along rows
+            block = sorted_cols[i * (47**2 - 1) : (i + 1) * 2 * (47**2 - 1)]
+            res_block_cols, row_block_errors = self.RS_row_decoder(block)
+            # print("Row errors:")
+            # print(row_errors)
+
+            succes.append(-1 not in row_block_errors)
+            print(row_block_errors)
+            res_cols += res_block_cols
+            row_errors.append(row_block_errors)
 
         # Concatenate all the DNA-strands
         total = []
@@ -62,6 +71,8 @@ class Decoder:
         # Convert list of values base 47 to binary string
         bits = base47_to_bin(total, codon_len=4, m=self.m)
         binary_string_to_file(bits, outputPath)
+
+        print(succes)
 
         return column_errors, row_errors, succes
 
@@ -86,7 +97,7 @@ class Decoder:
         for strand in DNA_data:
             compl_strand = complementairy_strand(strand)
             DNA_strands.append(strand)
-            DNA_strands.append(compl_strand)
+            # DNA_strands.append(compl_strand)
 
         return DNA_strands
 
@@ -140,6 +151,8 @@ class Decoder:
         decoded_cols = flip_matrix(result_rows)
 
         res_cols = separate_columns(decoded_cols)
+
+        print(errors)
 
         return res_cols, errors
 
