@@ -53,7 +53,7 @@ class Decoder:
 
         for i in range(len(sorted_cols) // (2 * (47**2 - 1)) + 1):
             # Reed Solomon decoding along rows
-            block = sorted_cols[i * (47**2 - 1) : (i + 1) * 2 * (47**2 - 1)]
+            block = sorted_cols[i * 2 * (47**2 - 1) : (i + 1) * 2 * (47**2 - 1)]
             res_block_cols, row_block_errors = self.RS_row_decoder(block)
             # print("Row errors:")
             # print(row_errors)
