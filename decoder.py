@@ -59,7 +59,6 @@ class Decoder:
             # print(row_errors)
 
             succes.append(-1 not in row_block_errors)
-            print(row_block_errors)
             res_cols += res_block_cols
             row_errors.append(row_block_errors)
 
@@ -72,7 +71,7 @@ class Decoder:
         bits = base47_to_bin(total, codon_len=4, m=self.m)
         binary_string_to_file(bits, outputPath)
 
-        print(succes)
+        # print(succes)
 
         return column_errors, row_errors, succes
 
@@ -132,12 +131,17 @@ class Decoder:
             # if decoded_col[0] != 1:
             #     continue
 
-            if false_bases > self.redB | error == -1:
+            if false_bases > self.redB or error == -1:
+                continue
+
+            index = self.get_index_from_base47(decoded_col[: self.index_len])
+
+            if index > len(DNA_strands) * 1.2:
                 continue
 
             errors.append(error)
             decoded_cols.append(decoded_col[self.index_len :])
-            index_list.append(self.get_index_from_base47(decoded_col[: self.index_len]))
+            index_list.append(index)
 
         return decoded_cols, index_list, errors
 
@@ -151,8 +155,6 @@ class Decoder:
         decoded_cols = flip_matrix(result_rows)
 
         res_cols = separate_columns(decoded_cols)
-
-        print(errors)
 
         return res_cols, errors
 

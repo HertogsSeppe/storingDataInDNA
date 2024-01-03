@@ -38,7 +38,6 @@ class Encoder:
 
         # Apply reed solomon error correction and cut up in lists of lenth k + redA
         encrypted_data = self.apply_reed_solomon(base47_list)
-        print(encrypted_data)
 
         # Convert the base 47 lists to dna strands
         dnaStrand = self.base47_to_DNA(encrypted_data)
