@@ -7,13 +7,32 @@ class ErrorSimulator:
     def __init__(self):
         print("ErrorSimulator")
 
-    def induceErrors(self, inputPath, outputPath):
+    def induceErrors(
+        self,
+        inputPath,
+        outputPath,
+        dropout=0.01,
+        insert_rate=0.00042,
+        del_rate=0.00188,
+        sub_rate=0.00407,
+    ):
+        self.dropout = dropout
+        self.insert_rate = insert_rate
+        self.del_rate = del_rate
+        self.sub_rate = sub_rate
+
         # print("Inducing errors...")
         # Read in sequences from inputpath
         DNA_strands = self.read_strands(inputPath)
 
         # Use sim_seq_simple to induce errors in the strands
-        error_strands = self.sim_seq_simple(DNA_strands)
+        error_strands = self.sim_seq_simple(
+            DNA_strands,
+            self.dropout,
+            self.insert_rate,
+            self.del_rate,
+            self.sub_rate,
+        )
 
         # Write the strands back into a file
         error_strands = "\n".join(error_strands)

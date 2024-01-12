@@ -13,17 +13,21 @@ from config import codons
 class Encoder:
     def __init__(self):
         print("Encoder")
+        # Redundancy in the row direction
         self.redA = 30
         self.red_frac_A = 0
         self.k = (47**2 - 1) - self.redA
 
+        # Redundancy in the column direction and index length
         self.redB = 20
         self.index_len = 4
         self.m = 46 - self.index_len - self.redB
 
+        # Initialize galois fields
         self.GF = galois.GF(47)
         self.GF2 = galois.GF(47**2)
 
+        # Initialize Reed Solomon encoders with the right redundancy
         self.rs_col = galois.ReedSolomon(46, 46 - self.redB, field=self.GF)
         self.rs_row = galois.ReedSolomon(
             47**2 - 1, (47**2 - 1) - self.redA, field=self.GF2
@@ -72,9 +76,10 @@ class Encoder:
         elif nr_codons == 4:
             wl = 22
         else:
-            print("ERROR: Invalid sequence")
+            print("ERROR: This number of codons is not supported")
             return ""
 
+        # Reserve space for the padding of the last column (calculated in the split_strands function)
         data_list = [0]
 
         if wl == 22:
@@ -82,7 +87,7 @@ class Encoder:
             zeroPad = (wl - len(bits) % wl) % wl
             bits = bits + zeroPad * "0"
 
-            # Set the first element of the list to the added padding
+            # Set the second element of the list to the added padding
             data_list.append(zeroPad)
 
         # Go over the binary string in steps of "wl" and convert to a list of base 47 numbers
@@ -123,11 +128,15 @@ class Encoder:
 
     def split_strands(self, raw_data):
         strands = []
+        # Calculate the amount of padding codons in the last strand
         remainder = len(raw_data) % self.m
 
+        # Split the data into strands of the message size m
         for i in range(len(raw_data) // self.m):
             strand = raw_data[i * self.m : (i + 1) * self.m]
             strands.append(strand)
+
+        # If there is no remainder, the strands are complete
         if remainder == 0:
             return strands
 
@@ -135,19 +144,17 @@ class Encoder:
         strand = raw_data[-remainder:] + (self.m - remainder) * [0]
         strands.append(strand)
 
+        # Store the remainder in the first codon
         strands[0][0] = self.m - remainder
 
         return strands
 
-    def generate_index_base47(self, id, index_len=4):
-        id_sequence = []
-
-        for i in range(index_len - 1, -1, -1):
-            id_sequence.append((id // (47**i)) % 47)
-
-        return id_sequence
+    def generate_index_base47(self, id):
+        # Convert an id to an array of base 47 numbers based on the index length
+        return self.word_to_base47(id, self.index_len)
 
     def word_to_base47(self, word, nr_codons):
+        # Convert a integer to an array of base 47 numbers
         strand = []
 
         for i in range(nr_codons - 1, -1, -1):
@@ -158,6 +165,7 @@ class Encoder:
         return strand
 
     def base47_to_DNA(self, data):
+        # Convert a list of base 47 codons to a DNA strand
         nucleotides = ""
         for strand in data:
             for index in strand:
@@ -166,6 +174,7 @@ class Encoder:
         return nucleotides
 
     def update_row_rs_field(self, nr_cols):
+        # Generate a redundancy based on an fraction
         red = int(round(nr_cols * self.red_frac_A))
         self.redA = red
 

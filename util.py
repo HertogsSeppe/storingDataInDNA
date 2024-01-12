@@ -1,4 +1,5 @@
 from config import codon_dict, codons
+import hashlib
 
 """ 
 Stack overflow, Brunão: https://stackoverflow.com/questions/75611160/
@@ -34,6 +35,7 @@ def flip_matrix(matrix):
     new_matrix = []
     for i in range(len(matrix[0])):
         new_matrix.append([int(row[i]) for row in matrix])
+
     return new_matrix
 
 
@@ -41,6 +43,7 @@ def GF_to_ints(matrix):
     ints_matrix = [
         [int(matrix[i][j]) for j in range(len(matrix[0]))] for i in range(len(matrix))
     ]
+
     return ints_matrix
 
 
@@ -162,3 +165,14 @@ def complementairy_strand(strand):
         strand.replace("G", "c").replace("C", "g").replace("A", "t").replace("T", "a")
     )
     return compl_strand.upper()[::-1]
+
+
+def compare_files(file1, file2):
+    # Compare file1 and file2 using SHA256 checksum, if they are the same return True else return False
+    with open(file1, "rb") as fi:
+        data1 = fi.read()
+    hash1 = hashlib.sha256(data1).hexdigest()
+    with open(file2, "rb") as fi:
+        data2 = fi.read()
+    hash2 = hashlib.sha256(data2).hexdigest()
+    return hash1 == hash2
